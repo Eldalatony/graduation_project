@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # === INFRASTRUCTURE & DATABASES ===
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: shemms_mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    container_name: shemms_postgres
+    environment:
+      POSTGRES_DB: shemms
+      POSTGRES_USER: your_postgres_user
+      POSTGRES_PASSWORD: your_postgres_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d/
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: shemms_influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influx_data:/var/lib/influxdb2
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: shemms_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  # === CUSTOM MICROSERVICES ===
+  backend:
+    build: ./backend
+    container_name: shemms_backend
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mosquitto
+      - postgres
+      - influxdb
+      - mongodb
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+
+  analytics:
+    build: ./analytics
+    container_name: shemms_analytics
+    ports:
+      - "5000:5000"
+    depends_on:
+      - influxdb
+      - mongodb
+      - postgres
+    env_file:
+      - ./analytics/.env
+    restart: unless-stopped
+
+  simulator:
+    build: ./simulator
+    container_name: shemms_simulator
+    depends_on:
+      - mosquitto
+      - backend
+    env_file:
+      - ./simulator/.env
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: shemms_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    env_file:
+      - ./frontend/.env
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  influx_data:
+  mongo_data:

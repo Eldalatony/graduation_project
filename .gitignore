@@ -1,0 +1,24 @@
+# === Node.js / Frontend (Next.js) & Backend ===
+node_modules/
+npm-debug.log
+yarn-error.log
+.next/
+out/
+build/
+
+# === Python / Simulator & Analytics ===
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.pytest_cache/
+
+# === Security Rules ===
+# Never commit .env files! Only .env.example should be tracked.
+.env
+*.pem
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
