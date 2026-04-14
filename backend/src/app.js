@@ -7,6 +7,9 @@ const { InfluxDB } = require('@influxdata/influxdb-client');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Initialize MQTT Listener
+require('./services/mqttService');
+
 // 1. Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB connected successfully'))
