@@ -1,4 +1,6 @@
 const mqtt = require('mqtt');
+const { deriveMetrics } = require('./metricsService');
+const { saveRoomMetrics } = require('./influxService');
 
 // 1. Connect to the Mosquitto broker using the URL from .env
 const brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://mosquitto:1883';
@@ -36,9 +38,18 @@ client.on('message', (topic, message) => {
       
       // Extract and print the specific wattages for your rooms
       if (payload.nodes) {
-         console.log(`🍳 Kitchen: ${payload.nodes.kitchen?.wattage || 0}W`);
-         console.log(`👕 Laundry: ${payload.nodes.laundry?.wattage || 0}W`);
-         console.log(`❄️ Climate: ${payload.nodes.climate?.wattage || 0}W`);
+        // Calculate metrics for the Laundry room
+        const laundryWatts = payload.nodes.laundry?.wattage || 0;
+        const laundryMetrics = deriveMetrics(laundryWatts);
+
+        console.log(`\n👕 Laundry Room Status:`);
+        console.log(`Power:   ${laundryWatts}W`);
+        console.log(`Current: ${laundryMetrics.current}A at ${laundryMetrics.voltage}V`);
+        console.log(`Energy:  ${laundryMetrics.kwh} kWh`);
+        console.log(`Cost:    $${laundryMetrics.cost}`);
+
+        // SAVE TO DATABASE
+        saveRoomMetrics('laundry', laundryWatts, laundryMetrics);
       }
     } catch (error) {
       console.error('❌ MQTT Service: Failed to parse message', error);

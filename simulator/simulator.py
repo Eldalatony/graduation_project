@@ -53,21 +53,22 @@ def main():
                 laundry_power = float(row['Sub_metering_2'])
                 climate_power = float(row['Sub_metering_3'])
 
+                # FIXED: Keys now perfectly match the Node.js backend parser
                 payload = {
                     "gateway_id": GATEWAY_ID,
                     "status": "ONLINE",
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "nodes": {
-                        "kitchen_node": {
-                            "power_W": kitchen_power,
+                        "kitchen": {
+                            "wattage": kitchen_power,
                             "status": "active" if kitchen_power > 0 else "idle"
                         },
-                        "laundry_node": {
-                            "power_W": laundry_power,
+                        "laundry": {
+                            "wattage": laundry_power,
                             "status": "active" if laundry_power > 0 else "idle"
                         },
-                        "climate_node": {
-                            "power_W": climate_power,
+                        "climate": {
+                            "wattage": climate_power,
                             "status": "active" if climate_power > 0 else "idle"
                         }
                     }
