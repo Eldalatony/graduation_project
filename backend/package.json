@@ -6,10 +6,10 @@
     "start": "node src/app.js"
   },
   "dependencies": {
+    "@influxdata/influxdb-client": "^1.33.0",
     "express": "^4.18.2",
     "mongoose": "^8.0.0",
-    "pg": "^8.11.3",
-    "mqtt": "^5.0.0",
-    "@influxdata/influxdb-client": "^1.33.0"
+    "mqtt": "^5.15.1",
+    "pg": "^8.11.3"
   }
 }
