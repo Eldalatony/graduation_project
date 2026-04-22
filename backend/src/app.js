@@ -1,11 +1,15 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const { Client } = require('pg');
 const mqtt = require('mqtt');
 const { InfluxDB } = require('@influxdata/influxdb-client');
 
+const authRoutes = require('./routes/authRoutes');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+app.use(express.json());
 
 // Initialize MQTT Listener
 require('./services/mqttService');
@@ -15,15 +19,8 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB connected successfully'))
   .catch(err => console.error('❌ MongoDB connection error:', err.message));
 
-// 2. Connect to PostgreSQL
-const pgClient = new Client({
-  host: process.env.POSTGRES_HOST,
-  port: process.env.POSTGRES_PORT,
-  database: process.env.POSTGRES_DB,
-  user: process.env.POSTGRES_USER,
-  password: process.env.POSTGRES_PASSWORD,
-});
-pgClient.connect()
+// 2. Verify PostgreSQL pool (auth module uses config/db.js pool)
+require('./config/db').query('SELECT 1')
   .then(() => console.log('✅ PostgreSQL connected successfully'))
   .catch(err => console.error('❌ PostgreSQL connection error:', err.message));
 
@@ -34,11 +31,14 @@ mqttClient.on('error', (err) => console.error('❌ MQTT error:', err.message));
 
 // 4. Initialize InfluxDB Client
 try {
-  const influx = new InfluxDB({ url: process.env.INFLUX_URL, token: process.env.INFLUX_TOKEN });
+  const influx = new InfluxDB({ url: process.env.INFLUXDB_URL, token: process.env.INFLUXDB_TOKEN });
   console.log('✅ InfluxDB client initialized successfully');
 } catch (err) {
   console.error('❌ InfluxDB initialization error:', err.message);
 }
+
+// Auth routes
+app.use('/api/auth', authRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {

@@ -7,6 +7,7 @@ CREATE TABLE users (
     name VARCHAR NOT NULL,
     email VARCHAR UNIQUE NOT NULL,
     password_hash VARCHAR NOT NULL,
+    role VARCHAR NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
     tariff_rate DECIMAL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

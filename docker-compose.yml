@@ -16,13 +16,18 @@ services:
     container_name: shemms_postgres
     environment:
       POSTGRES_DB: shemms
-      POSTGRES_USER: your_postgres_user
-      POSTGRES_PASSWORD: your_postgres_password
+      POSTGRES_USER: shemms_user
+      POSTGRES_PASSWORD: shemms_pass_2024
     ports:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shemms_user -d shemms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   influxdb:
@@ -50,10 +55,14 @@ services:
     ports:
       - "3001:3001"
     depends_on:
-      - mosquitto
-      - postgres
-      - influxdb
-      - mongodb
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+      influxdb:
+        condition: service_started
+      mongodb:
+        condition: service_started
     env_file:
       - ./backend/.env
     restart: unless-stopped
