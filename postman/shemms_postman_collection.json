@@ -1,0 +1,542 @@
+{
+  "info": {
+    "_postman_id": "9f2d7a1c-shemms-phase2-collection",
+    "name": "SHEMMS Backend - Phase 2",
+    "description": "Full Phase 2 REST API coverage for the Smart Home Energy Monitoring & Management System backend. Use the SHEMMS Local environment. Login auto-stores the JWT into the `jwt_token` environment variable; appliance/schedule/alert IDs are also captured into env vars by the test scripts to chain requests easily.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "appliance_id", "value": "" },
+    { "key": "schedule_id", "value": "" },
+    { "key": "alert_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@shemms.local\",\n  \"password\": \"pw123456\",\n  \"tariff_rate\": 1.5\n}"
+            },
+            "description": "Create a new user account. Returns a JWT and the user record. Re-running with the same email returns 409."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.token) pm.environment.set('jwt_token', body.token);",
+                  "  pm.test('Registered with token', function () {",
+                  "    pm.expect(body).to.have.property('token');",
+                  "    pm.expect(body.user).to.have.property('id');",
+                  "  });",
+                  "} else if (pm.response.code === 409) {",
+                  "  pm.test('Email already exists - run Login instead', function () {",
+                  "    pm.expect(pm.response.code).to.equal(409);",
+                  "  });",
+                  "} else {",
+                  "  pm.test('Unexpected status', function () {",
+                  "    pm.expect.fail('Status was ' + pm.response.code + ': ' + pm.response.text());",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@shemms.local\",\n  \"password\": \"pw123456\"\n}"
+            },
+            "description": "Authenticate and receive a JWT. The test script auto-saves the token to the `jwt_token` environment variable so every subsequent request authorizes via Bearer {{jwt_token}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Response contains JWT token', function () {",
+                  "  pm.expect(body).to.have.property('token');",
+                  "  pm.expect(body.token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "if (body && body.token) {",
+                  "  pm.environment.set('jwt_token', body.token);",
+                  "  console.log('Saved jwt_token to environment');",
+                  "}",
+                  "",
+                  "if (body && body.user && body.user.id) {",
+                  "  pm.environment.set('user_id', body.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Appliances",
+      "item": [
+        {
+          "name": "List Appliances",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/appliances",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances"]
+            },
+            "description": "List all appliances belonging to the authenticated user."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Returns appliances array', function () { pm.expect(body.appliances).to.be.an('array'); });",
+                  "if (body.appliances && body.appliances.length > 0) {",
+                  "  pm.environment.set('appliance_id', body.appliances[0].id);",
+                  "  console.log('Saved appliance_id from first appliance');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create Appliance - Kitchen",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appliances",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kitchen Appliance\",\n  \"node_key\": \"kitchen\",\n  \"gateway_id\": \"ESP32_Main_Hub\",\n  \"is_active\": true\n}"
+            },
+            "description": "Register a new appliance. node_key must match a key the simulator publishes (kitchen, laundry, climate)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "if (body.appliance && body.appliance.id) {",
+                  "  pm.environment.set('appliance_id', body.appliance.id);",
+                  "  console.log('Saved appliance_id: ' + body.appliance.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create Appliance - Laundry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appliances",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laundry Appliance\",\n  \"node_key\": \"laundry\",\n  \"gateway_id\": \"ESP32_Main_Hub\",\n  \"is_active\": true\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Appliance - Climate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appliances",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Climate Appliance\",\n  \"node_key\": \"climate\",\n  \"gateway_id\": \"ESP32_Main_Hub\",\n  \"is_active\": true\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Appliance",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appliances/{{appliance_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances", "{{appliance_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kitchen (Updated)\"\n}"
+            },
+            "description": "Update fields of an existing appliance. Any subset of name, node_key, gateway_id, is_active is allowed."
+          },
+          "response": []
+        },
+        {
+          "name": "Control Appliance",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appliances/{{appliance_id}}/control",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances", "{{appliance_id}}", "control"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"off\"\n}"
+            },
+            "description": "Publish an MQTT control command to home/gateway/{gateway_id}/control/{node_key}. Valid commands: on, off, turn_on, turn_off."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Live Readings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/appliances/{{appliance_id}}/readings?minutes=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances", "{{appliance_id}}", "readings"],
+              "query": [
+                { "key": "minutes", "value": "5" }
+              ]
+            },
+            "description": "Fetch decrypted live readings (power_W, current_A, voltage_V, energy_kWh, cost_EGP) from InfluxDB for the last N minutes (max 60)."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Appliance",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/appliances/{{appliance_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances", "{{appliance_id}}"]
+            },
+            "description": "Remove an appliance. Cascade-deletes its schedules and alerts."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Schedules",
+      "item": [
+        {
+          "name": "List Schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/schedules",
+              "host": ["{{base_url}}"],
+              "path": ["api", "schedules"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "if (body.schedules && body.schedules.length > 0) {",
+                  "  pm.environment.set('schedule_id', body.schedules[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/schedules",
+              "host": ["{{base_url}}"],
+              "path": ["api", "schedules"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appliance_id\": \"{{appliance_id}}\",\n  \"action\": \"off\",\n  \"cron_expression\": \"*/2 * * * *\",\n  \"is_enabled\": true\n}"
+            },
+            "description": "Create a cron-based on/off schedule for an appliance. Example cron `*/2 * * * *` fires every 2 minutes."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "if (body.schedule && body.schedule.id) {",
+                  "  pm.environment.set('schedule_id', body.schedule.id);",
+                  "  console.log('Saved schedule_id: ' + body.schedule.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Update Schedule",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/schedules/{{schedule_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "schedules", "{{schedule_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_enabled\": false\n}"
+            },
+            "description": "Update action, cron_expression, or is_enabled on an existing schedule."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Schedule",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/schedules/{{schedule_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "schedules", "{{schedule_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "List Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "alerts"]
+            },
+            "description": "List up to 200 most recent alerts for the user. Add ?unread=true to filter to unread only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "if (body.alerts && body.alerts.length > 0) {",
+                  "  pm.environment.set('alert_id', body.alerts[0].id);",
+                  "  console.log('Saved alert_id: ' + body.alerts[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Unread Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/alerts?unread=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "alerts"],
+              "query": [
+                { "key": "unread", "value": "true" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Alert Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/alerts/{{alert_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "alerts", "{{alert_id}}", "read"]
+            },
+            "description": "Mark a single alert as read. Run List Alerts first so {{alert_id}} is populated."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Settings",
+      "item": [
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "settings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "settings"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Renamed User\",\n  \"tariff_rate\": 2.25\n}"
+            },
+            "description": "Update the user's display name and/or electricity tariff rate (EGP per kWh)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Root",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

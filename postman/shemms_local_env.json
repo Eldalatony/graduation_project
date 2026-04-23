@@ -1,0 +1,44 @@
+{
+  "id": "5ad11e7a-shemms-local-env",
+  "name": "SHEMMS Local",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "appliance_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "schedule_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "alert_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_using": "SHEMMS Phase 2"
+}

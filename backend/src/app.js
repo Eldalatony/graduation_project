@@ -1,50 +1,67 @@
 require('dotenv').config();
+const http = require('http');
 const express = require('express');
 const mongoose = require('mongoose');
-const mqtt = require('mqtt');
-const { InfluxDB } = require('@influxdata/influxdb-client');
 
 const authRoutes = require('./routes/authRoutes');
+const applianceRoutes = require('./routes/applianceRoutes');
+const scheduleRoutes = require('./routes/scheduleRoutes');
+const alertRoutes = require('./routes/alertRoutes');
+const userRoutes = require('./routes/userRoutes');
+
+const pool = require('./config/db');
+const registry = require('./services/applianceRegistry');
+const scheduler = require('./services/schedulerService');
+const alertEngine = require('./services/alertService');
+const etl = require('./services/etlService');
+const socketService = require('./services/socketService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 
-// Initialize MQTT Listener
-require('./services/mqttService');
+// Health check
+app.get('/', (_req, res) => res.send('SHEMMS Backend is running'));
+app.get('/health', (_req, res) => res.json({ status: 'ok', uptime_s: process.uptime() }));
 
-// 1. Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected successfully'))
-  .catch(err => console.error('❌ MongoDB connection error:', err.message));
-
-// 2. Verify PostgreSQL pool (auth module uses config/db.js pool)
-require('./config/db').query('SELECT 1')
-  .then(() => console.log('✅ PostgreSQL connected successfully'))
-  .catch(err => console.error('❌ PostgreSQL connection error:', err.message));
-
-// 3. Connect to MQTT Broker
-const mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL);
-mqttClient.on('connect', () => console.log('✅ MQTT Broker connected successfully'));
-mqttClient.on('error', (err) => console.error('❌ MQTT error:', err.message));
-
-// 4. Initialize InfluxDB Client
-try {
-  const influx = new InfluxDB({ url: process.env.INFLUXDB_URL, token: process.env.INFLUXDB_TOKEN });
-  console.log('✅ InfluxDB client initialized successfully');
-} catch (err) {
-  console.error('❌ InfluxDB initialization error:', err.message);
-}
-
-// Auth routes
+// REST routes
 app.use('/api/auth', authRoutes);
+app.use('/api/appliances', applianceRoutes);
+app.use('/api/schedules', scheduleRoutes);
+app.use('/api/alerts', alertRoutes);
+app.use('/api/users', userRoutes);
 
-// Basic health check route
-app.get('/', (req, res) => {
-  res.send('SHEMMS Backend Skeleton is running!');
-});
+const server = http.createServer(app);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Backend server listening on port ${PORT}`);
-});
+const bootstrap = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ MongoDB connected');
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err.message);
+  }
+
+  try {
+    await pool.query('SELECT 1');
+    console.log('✅ PostgreSQL connected');
+  } catch (err) {
+    console.error('❌ PostgreSQL connection error:', err.message);
+  }
+
+  // Wire event listeners BEFORE starting MQTT subscription so we can't drop early messages.
+  socketService.init(server);
+  alertEngine.init();
+  await registry.refresh();
+  await scheduler.init();
+  etl.init();
+
+  // Now connect to MQTT and start ingesting.
+  require('./services/mqttService');
+
+  server.listen(PORT, () => {
+    console.log(`🚀 SHEMMS backend listening on port ${PORT}`);
+  });
+};
+
+bootstrap();
