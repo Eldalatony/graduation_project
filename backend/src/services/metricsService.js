@@ -1,29 +1,26 @@
-// Grab constants from .env, or use standard defaults
-const VOLTAGE = process.env.GRID_VOLTAGE || 220; 
-const COST_PER_KWH = process.env.TARIFF_RATE || 1.5; // Example cost per kWh
-const INTERVAL_SECONDS = 1; // Assuming your simulator sends data every 1 second
+const DEFAULT_VOLTAGE = Number(process.env.DEFAULT_VOLTAGE || 220);
+const DEFAULT_TARIFF = Number(process.env.DEFAULT_TARIFF_RATE || 1.5);
+const INTERVAL_SECONDS = Number(process.env.SAMPLE_INTERVAL_S || 1);
 
-const deriveMetrics = (wattage) => {
+const deriveMetrics = (wattage, tariffRate) => {
   if (wattage === undefined || wattage === null) return null;
 
-  // 1. Calculate Current in Amperes (I = P / V)
-  const current = wattage / VOLTAGE;
+  const voltage = DEFAULT_VOLTAGE;
+  const tariff = Number.isFinite(Number(tariffRate)) && Number(tariffRate) > 0
+    ? Number(tariffRate)
+    : DEFAULT_TARIFF;
 
-  // 2. Calculate Energy in kWh for this 1-second slice
-  // (Watts / 1000 = kW) * (1 second / 3600 seconds = hours)
-  const kwh = (wattage / 1000) * (INTERVAL_SECONDS / 3600);
-
-  // 3. Calculate Cost for this slice
-  const cost = kwh * COST_PER_KWH;
+  const current = wattage / voltage;
+  const kwh = (wattage * INTERVAL_SECONDS) / 3_600_000;
+  const cost = kwh * tariff;
 
   return {
-    voltage: VOLTAGE,
-    current: Number(current.toFixed(3)),
-    kwh: Number(kwh.toFixed(8)), // Needs high precision since 1 second of energy is tiny
-    cost: Number(cost.toFixed(8))
+    voltage,
+    current: Number(current.toFixed(4)),
+    kwh: Number(kwh.toFixed(10)),
+    cost: Number(cost.toFixed(10)),
+    tariff,
   };
 };
 
-module.exports = {
-  deriveMetrics
-};
+module.exports = { deriveMetrics };

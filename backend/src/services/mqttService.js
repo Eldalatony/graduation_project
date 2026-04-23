@@ -1,60 +1,91 @@
 const mqtt = require('mqtt');
 const { deriveMetrics } = require('./metricsService');
-const { saveRoomMetrics } = require('./influxService');
+const { writeEncryptedReading, flushWrites } = require('./influxService');
+const registry = require('./applianceRegistry');
+const bus = require('./eventBus');
 
-// 1. Connect to the Mosquitto broker using the URL from .env
 const brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://mosquitto:1883';
+const clientId = `${process.env.MQTT_CLIENT_ID || 'backend_server'}_${Math.random().toString(16).slice(2, 8)}`;
+
 const client = mqtt.connect(brokerUrl, {
-  clientId: `backend_server_${Math.random().toString(16).slice(3)}`, // Random ID prevents connection collisions
+  clientId,
   clean: true,
   connectTimeout: 4000,
   reconnectPeriod: 1000,
 });
 
-const TOPIC = 'home/gateway/data';
+const DATA_TOPIC = 'home/gateway/data';
 
 client.on('connect', () => {
-  console.log('🔌 MQTT Service: Successfully connected to broker');
-  
-  // 2. Subscribe to the topic
-  client.subscribe(TOPIC, (err) => {
-    if (!err) {
-      console.log(`📡 MQTT Service: Actively listening to [${TOPIC}]`);
-    } else {
-      console.error('❌ MQTT Service: Subscription error:', err);
-    }
+  console.log('🔌 MQTT Service: connected to broker');
+  client.subscribe(DATA_TOPIC, (err) => {
+    if (err) console.error('❌ MQTT subscribe error:', err.message);
+    else console.log(`📡 MQTT Service: subscribed to [${DATA_TOPIC}]`);
   });
 });
 
-// 3. Trigger this function every time a new message arrives
-client.on('message', (topic, message) => {
-  if (topic === TOPIC) {
-    try {
-      // The simulator sends text. We parse it into a JavaScript Object.
-      const payload = JSON.parse(message.toString());
-      
-      console.log('\n⚡ --- New Gateway Data Received --- ⚡');
-      console.log(`Timestamp: ${payload.timestamp}`);
-      
-      // Extract and print the specific wattages for your rooms
-      if (payload.nodes) {
-        // Calculate metrics for the Laundry room
-        const laundryWatts = payload.nodes.laundry?.wattage || 0;
-        const laundryMetrics = deriveMetrics(laundryWatts);
+client.on('error', (err) => console.error('❌ MQTT error:', err.message));
+client.on('reconnect', () => console.log('🔄 MQTT reconnecting...'));
 
-        console.log(`\n👕 Laundry Room Status:`);
-        console.log(`Power:   ${laundryWatts}W`);
-        console.log(`Current: ${laundryMetrics.current}A at ${laundryMetrics.voltage}V`);
-        console.log(`Energy:  ${laundryMetrics.kwh} kWh`);
-        console.log(`Cost:    $${laundryMetrics.cost}`);
+client.on('message', async (topic, message) => {
+  if (topic !== DATA_TOPIC) return;
 
-        // SAVE TO DATABASE
-        saveRoomMetrics('laundry', laundryWatts, laundryMetrics);
-      }
-    } catch (error) {
-      console.error('❌ MQTT Service: Failed to parse message', error);
-    }
+  let payload;
+  try {
+    payload = JSON.parse(message.toString());
+  } catch (err) {
+    console.error('❌ MQTT parse error:', err.message);
+    return;
   }
+
+  const { gateway_id: gatewayId, nodes, timestamp } = payload;
+  if (!gatewayId || !nodes) return;
+
+  for (const [nodeKey, node] of Object.entries(nodes)) {
+    const wattage = Number(node?.wattage ?? node?.power_W ?? 0);
+    const status = node?.status || (wattage > 0 ? 'active' : 'idle');
+
+    const appliance = await registry.lookup(gatewayId, nodeKey);
+
+    const metrics = deriveMetrics(wattage, appliance?.tariff_rate);
+    if (!metrics) continue;
+
+    const reading = {
+      userId: appliance?.user_id || null,
+      applianceId: appliance?.id || null,
+      applianceName: appliance?.name || nodeKey,
+      gatewayId,
+      nodeKey,
+      timestamp,
+      powerW: wattage,
+      currentA: metrics.current,
+      voltageV: metrics.voltage,
+      energyKwh: metrics.kwh,
+      costEgp: metrics.cost,
+      status,
+    };
+
+    if (appliance) {
+      writeEncryptedReading(reading);
+    }
+
+    bus.emit('reading', reading);
+  }
+
+  flushWrites();
 });
 
-module.exports = client;
+// Publish an on/off control command for a given appliance.
+const publishControl = ({ gatewayId, nodeKey, applianceId, command, issuedBy }) => {
+  const topic = `home/gateway/${gatewayId}/control/${nodeKey}`;
+  const body = JSON.stringify({
+    command,
+    appliance_id: applianceId,
+    issued_by: issuedBy,
+    timestamp: new Date().toISOString(),
+  });
+  client.publish(topic, body, { qos: 0 });
+  return { topic, body };
+};
+
+module.exports = { client, publishControl };
