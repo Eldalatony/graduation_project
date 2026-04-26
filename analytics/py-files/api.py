@@ -29,7 +29,8 @@ Run:
   pip install flask flask-cors
   python api.py
 """
-
+from he_layer import he_bp
+from api_ui_endpoints import ui_bp
 from flask import Flask, jsonify, request, send_file, g
 from flask_cors import CORS
 import pymongo
@@ -77,6 +78,9 @@ def score_to_severity(score: float) -> str:
 # ── App setup ─────────────────────────────────────────────────────────────────
 
 app = Flask(__name__)
+app.register_blueprint(he_bp)
+app.register_blueprint(ui_bp)
+
 CORS(app)
 
 client     = pymongo.MongoClient(MONGO_URI)
