@@ -11,7 +11,7 @@ const keyOf = (gatewayId, nodeKey) => `${gatewayId}::${nodeKey}`;
 const refresh = async () => {
   try {
     const { rows } = await pool.query(
-      `SELECT a.id, a.user_id, a.name, a.node_key, a.gateway_id, a.is_active,
+      `SELECT a.id, a.user_id, a.name, a.node_key, a.gateway_id, a.is_active, a.room,
               u.tariff_rate
          FROM appliances a
          JOIN users u ON u.id = a.user_id`
@@ -37,8 +37,16 @@ const lookup = async (gatewayId, nodeKey) => {
   return cache.get(keyOf(gatewayId, nodeKey)) || null;
 };
 
+const lookupById = async (applianceId) => {
+  await ensureFresh();
+  for (const a of cache.values()) {
+    if (a.id === applianceId) return a;
+  }
+  return null;
+};
+
 const invalidate = () => { lastLoaded = 0; };
 
 const allCached = () => Array.from(cache.values());
 
-module.exports = { refresh, lookup, invalidate, allCached };
+module.exports = { refresh, lookup, lookupById, invalidate, allCached };

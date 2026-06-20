@@ -1,15 +1,7 @@
-version: '3.8'
-
 services:
   # === INFRASTRUCTURE & DATABASES ===
-  mosquitto:
-    image: eclipse-mosquitto
-    container_name: shemms_mosquitto
-    ports:
-      - "1883:1883"
-    volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
-    restart: unless-stopped
+  # Note: MQTT broker is now hosted on HiveMQ Cloud (see backend/.env MQTT_BROKER_URL).
+  # No local Mosquitto container is required.
 
   postgres:
     image: postgres:15
@@ -48,6 +40,38 @@ services:
       - mongo_data:/data/db
     restart: unless-stopped
 
+  # === DATABASE ADMIN UIs (browser interfaces) ===
+  # pgAdmin -> http://localhost:5050   (PostgreSQL)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: shemms_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+
+  # mongo-express -> http://localhost:8081   (MongoDB)
+  mongo-express:
+    image: mongo-express:latest
+    container_name: shemms_mongo_express
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: "27017"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
   # === CUSTOM MICROSERVICES ===
   backend:
     build: ./backend
@@ -57,8 +81,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      mosquitto:
-        condition: service_started
       influxdb:
         condition: service_started
       mongodb:
@@ -70,12 +92,13 @@ services:
   analytics:
     build: ./analytics
     container_name: shemms_analytics
+    # Exposed on the host for direct debugging; the canonical client path is
+    # via the backend proxy at /api/analytics/* and /api/ui/* on port 3001.
     ports:
       - "5000:5000"
     depends_on:
-      - influxdb
-      - mongodb
-      - postgres
+      mongodb:
+        condition: service_started
     env_file:
       - ./analytics/.env
     restart: unless-stopped
@@ -84,7 +107,6 @@ services:
     build: ./simulator
     container_name: shemms_simulator
     depends_on:
-      - mosquitto
       - backend
     env_file:
       - ./simulator/.env
@@ -105,3 +127,4 @@ volumes:
   pg_data:
   influx_data:
   mongo_data:
+  pgadmin_data:

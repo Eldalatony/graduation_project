@@ -12,6 +12,9 @@ const client = mqtt.connect(brokerUrl, {
   clean: true,
   connectTimeout: 4000,
   reconnectPeriod: 1000,
+  username: process.env.MQTT_USERNAME,
+  password: process.env.MQTT_PASSWORD,
+  rejectUnauthorized: true,
 });
 
 const DATA_TOPIC = 'home/gateway/data';

@@ -9,6 +9,8 @@ CREATE TABLE users (
     password_hash VARCHAR NOT NULL,
     role VARCHAR NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
     tariff_rate DECIMAL,
+    reset_otp_hash VARCHAR,
+    reset_otp_expires TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -21,6 +23,15 @@ CREATE TABLE appliances (
     gateway_id VARCHAR NOT NULL,
     is_active BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2b. Spaces Table (user-defined rooms/areas; appliances.room references name)
+CREATE TABLE spaces (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, name)
 );
 
 -- 3. Schedules Table

@@ -13,7 +13,8 @@ const ensureOwnsAppliance = async (userId, applianceId) => {
 const listSchedules = async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT s.id, s.appliance_id, s.action, s.cron_expression, s.is_enabled, s.created_at,
+      `SELECT s.id, s.appliance_id, s.action, s.cron_expression, s.timer_minutes,
+              s.is_enabled, s.created_at,
               a.name AS appliance_name
          FROM schedules s
          JOIN appliances a ON a.id = s.appliance_id
@@ -29,25 +30,46 @@ const listSchedules = async (req, res) => {
 };
 
 const createSchedule = async (req, res) => {
-  const { appliance_id, action, cron_expression, is_enabled } = req.body;
-  if (!appliance_id || !action || !cron_expression) {
-    return res.status(400).json({ message: 'appliance_id, action, and cron_expression are required' });
+  const { appliance_id, action, cron_expression, timer_minutes, is_enabled } = req.body;
+
+  if (!appliance_id || !action) {
+    return res.status(400).json({ message: 'appliance_id and action are required' });
   }
   if (!['on', 'off'].includes(action)) {
     return res.status(400).json({ message: "action must be 'on' or 'off'" });
   }
-  if (!cron.validate(cron_expression)) {
-    return res.status(400).json({ message: 'invalid cron_expression' });
+
+  const isTimer = timer_minutes != null;
+
+  if (isTimer) {
+    const mins = Number(timer_minutes);
+    if (!Number.isInteger(mins) || mins < 1) {
+      return res.status(400).json({ message: 'timer_minutes must be a positive integer' });
+    }
+  } else {
+    if (!cron_expression) {
+      return res.status(400).json({ message: 'cron_expression is required for fixed schedules' });
+    }
+    if (!cron.validate(cron_expression)) {
+      return res.status(400).json({ message: 'invalid cron_expression' });
+    }
   }
+
   try {
     const owns = await ensureOwnsAppliance(req.user.id, appliance_id);
     if (!owns) return res.status(404).json({ message: 'Appliance not found' });
 
     const { rows } = await pool.query(
-      `INSERT INTO schedules (appliance_id, action, cron_expression, is_enabled)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, appliance_id, action, cron_expression, is_enabled, created_at`,
-      [appliance_id, action, cron_expression, is_enabled ?? true]
+      `INSERT INTO schedules (appliance_id, action, cron_expression, timer_minutes, is_enabled)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, appliance_id, action, cron_expression, timer_minutes, is_enabled, created_at`,
+      [
+        appliance_id,
+        action,
+        isTimer ? null : cron_expression,
+        isTimer ? Number(timer_minutes) : null,
+        is_enabled ?? true,
+      ]
     );
     await scheduler.reloadAll();
     res.status(201).json({ schedule: rows[0] });
@@ -74,7 +96,8 @@ const updateSchedule = async (req, res) => {
               is_enabled = COALESCE($3, s.is_enabled)
          FROM appliances a
         WHERE s.id = $4 AND s.appliance_id = a.id AND a.user_id = $5
-        RETURNING s.id, s.appliance_id, s.action, s.cron_expression, s.is_enabled, s.created_at`,
+        RETURNING s.id, s.appliance_id, s.action, s.cron_expression, s.timer_minutes,
+                  s.is_enabled, s.created_at`,
       [action, cron_expression, is_enabled, id, req.user.id]
     );
     if (rows.length === 0) return res.status(404).json({ message: 'Schedule not found' });

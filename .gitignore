@@ -22,3 +22,7 @@ env/
 # === OS Files ===
 .DS_Store
 Thumbs.db
+
+# === Office temp / lock files ===
+~$*
+*.tmp

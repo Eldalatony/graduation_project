@@ -1,0 +1,135 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f0f4ff;
+  background-image:
+    radial-gradient(ellipse at 15% 60%, rgba(56, 189, 248, 0.15) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 55%);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+/* ── Logo ── */
+.logoIcon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #6366f1, #38bdf8);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 20px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+}
+
+.brand {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #6366f1;
+  margin-bottom: 16px;
+}
+
+/* ── Hero text ── */
+.headline {
+  font-size: 33px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+  margin: 0 0 16px;
+  letter-spacing: -0.4px;
+  max-width: 680px;
+}
+
+.headline span {
+  background: linear-gradient(135deg, #6366f1, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sub {
+  font-size: 17px;
+  color: #64748b;
+  max-width: 440px;
+  line-height: 1.6;
+  margin: 0 auto 40px;
+}
+
+/* ── Features ── */
+.features {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 44px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 100px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.featureIcon {
+  font-size: 15px;
+}
+
+/* ── CTA ── */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 36px;
+  background: linear-gradient(135deg, #6366f1, #38bdf8);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+}
+
+.cta:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(99, 102, 241, 0.38);
+}
+
+.cta:active {
+  transform: scale(0.98);
+}
+
+.ctaArrow {
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+
+.cta:hover .ctaArrow {
+  transform: translateX(3px);
+}
+
+/* ── Footer note ── */
+.note {
+  margin-top: 20px;
+  font-size: 12px;
+  color: #94a3b8;
+}

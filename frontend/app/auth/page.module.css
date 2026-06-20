@@ -1,0 +1,208 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f4ff;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(56, 189, 248, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 60%);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 40px 36px;
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Logo ── */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.logoIcon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+}
+
+.logoSub {
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 28px;
+  border: 1px solid #e2e8f0;
+}
+
+.tab {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab:hover:not(.tabActive) {
+  color: #64748b;
+}
+
+.tabActive {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Form ── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  letter-spacing: 0.2px;
+}
+
+.input {
+  width: 100%;
+  padding: 11px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #0f172a;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.input::placeholder {
+  color: #cbd5e1;
+}
+
+.input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: #ffffff;
+}
+
+/* ── Error ── */
+.error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.notice {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #059669;
+  font-size: 13px;
+}
+
+/* ── Submit Button ── */
+.submitBtn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #6366f1, #38bdf8);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 4px;
+  letter-spacing: 0.2px;
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.submitBtn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Toggle link ── */
+.switchRow {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.switchLink {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  font-family: inherit;
+}
+
+.switchLink:hover {
+  text-decoration: underline;
+}
