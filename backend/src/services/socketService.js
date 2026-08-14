@@ -4,8 +4,7 @@ const bus = require('./eventBus');
 
 let io = null;
 
-// Buffer readings per user and flush every second (keeps dashboard smooth).
-const buffers = new Map(); // userId → [readings]
+const buffers = new Map();
 
 const init = (httpServer) => {
   io = new Server(httpServer, {

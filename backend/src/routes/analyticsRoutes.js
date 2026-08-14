@@ -5,12 +5,10 @@ const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 const ANALYTICS_URL = process.env.ANALYTICS_SERVICE_URL || 'http://analytics:5000';
-// HE endpoints can take 5–15s; keep the timeout generous.
 const TIMEOUT_MS = Number(process.env.ANALYTICS_TIMEOUT_MS || 60000);
 
 router.use(protect);
 
-// Catch-all proxy: the path the client called is the path analytics sees.
 router.all(/.*/, async (req, res) => {
   try {
     const upstream = await axios({

@@ -1,13 +1,17 @@
 .page {
   min-height: 100vh;
-  background: #f8fafc;
+  background:
+    radial-gradient(1100px 600px at 12% -8%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 92% 0%, rgba(34, 211, 238, 0.14), transparent 55%),
+    #0b1120;
+  color: #e2e8f0;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 .content {
   max-width: 680px;
   margin: 0 auto;
-  padding: 32px 28px;
+  padding: 28px 28px 64px;
 }
 
 .pageHeader {
@@ -15,10 +19,14 @@
 }
 
 .pageTitle {
-  font-size: 22px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 4px;
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 6px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, #e2e8f0, #a5b4fc 55%, #67e8f9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .pageSubtitle {
@@ -27,18 +35,17 @@
   margin: 0;
 }
 
-/* ── Card ── */
 .card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
   overflow: hidden;
   margin-bottom: 20px;
 }
 
 .cardHeader {
   padding: 18px 24px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -55,13 +62,13 @@
   flex-shrink: 0;
 }
 
-.cardIconBlue  { background: #eff6ff; }
-.cardIconGreen { background: #f0fdf4; }
+.cardIconBlue  { background: rgba(59, 130, 246, 0.16); }
+.cardIconGreen { background: rgba(34, 197, 94, 0.16); }
 
 .cardTitle {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f1f5f9;
   margin: 0;
 }
 
@@ -78,7 +85,6 @@
   gap: 16px;
 }
 
-/* ── Fields ── */
 .field {
   display: flex;
   flex-direction: column;
@@ -94,17 +100,17 @@
 .label {
   font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
 .input {
   padding: 9px 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  color: #0f172a;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  color: #f1f5f9;
   font-size: 14px;
   font-family: inherit;
   outline: none;
@@ -113,30 +119,31 @@
   width: 100%;
 }
 
+.input::placeholder { color: #64748b; }
+
 .input:focus {
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .inputReadonly {
-  background: #f1f5f9;
-  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.02);
+  color: #64748b;
   cursor: not-allowed;
 }
 
 .inputReadonly:focus {
-  border-color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.1);
   box-shadow: none;
 }
 
 .hint {
   font-size: 11px;
-  color: #94a3b8;
+  color: #64748b;
   margin-top: 2px;
 }
 
-/* ── Tariff input row ── */
 .tariffWrap {
   position: relative;
   display: flex;
@@ -145,10 +152,10 @@
 
 .tariffInput {
   padding: 9px 52px 9px 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  color: #0f172a;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  color: #f1f5f9;
   font-size: 14px;
   font-family: inherit;
   outline: none;
@@ -159,8 +166,8 @@
 
 .tariffInput:focus {
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .tariffUnit {
@@ -172,11 +179,10 @@
   pointer-events: none;
 }
 
-/* ── Footer ── */
 .cardFooter {
   padding: 14px 24px;
-  background: #f8fafc;
-  border-top: 1px solid #f1f5f9;
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -184,7 +190,7 @@
 
 .footerMsg {
   font-size: 12px;
-  color: #22c55e;
+  color: #6ee7b7;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -192,14 +198,14 @@
 }
 
 .footerMsgError {
-  color: #ef4444;
+  color: #fca5a5;
 }
 
 .saveBtn {
   padding: 8px 20px;
   background: linear-gradient(135deg, #6366f1, #38bdf8);
   border: none;
-  border-radius: 7px;
+  border-radius: 9px;
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -211,9 +217,8 @@
 .saveBtn:hover { opacity: 0.9; }
 .saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ── Loading skeleton ── */
 .skeleton {
-  background: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 6px;
   height: 38px;
   animation: pulse 1.4s ease-in-out infinite;
@@ -222,4 +227,11 @@
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
+}
+
+@media (max-width: 560px) {
+  .content { padding: 24px 16px 56px; }
+  .fieldRow { grid-template-columns: 1fr; }
+  .cardHeader, .cardBody, .cardFooter { padding-left: 18px; padding-right: 18px; }
+  .cardFooter { flex-wrap: wrap; gap: 10px; }
 }

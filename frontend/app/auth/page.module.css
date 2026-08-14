@@ -3,10 +3,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f4ff;
-  background-image:
-    radial-gradient(ellipse at 20% 50%, rgba(56, 189, 248, 0.12) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 60%);
+  background:
+    radial-gradient(1100px 600px at 12% -8%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 92% 0%, rgba(34, 211, 238, 0.14), transparent 55%),
+    #0b1120;
+  color: #e2e8f0;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   padding: 24px;
 }
@@ -14,14 +15,15 @@
 .card {
   width: 100%;
   max-width: 440px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
   padding: 40px 36px;
-  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 24px 70px -30px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-/* ── Logo ── */
 .logo {
   display: flex;
   align-items: center;
@@ -44,7 +46,7 @@
 .logoText {
   font-size: 20px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f1f5f9;
   letter-spacing: 0.5px;
 }
 
@@ -56,14 +58,13 @@
   margin-top: 1px;
 }
 
-/* ── Tabs ── */
 .tabs {
   display: flex;
-  background: #f1f5f9;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
   padding: 4px;
   margin-bottom: 28px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .tab {
@@ -74,22 +75,22 @@
   color: #94a3b8;
   font-size: 14px;
   font-weight: 500;
-  border-radius: 7px;
+  border-radius: 9px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-family: inherit;
 }
 
 .tab:hover:not(.tabActive) {
-  color: #64748b;
+  color: #e2e8f0;
 }
 
 .tabActive {
-  background: #ffffff;
-  color: #0f172a;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  background: rgba(99, 102, 241, 0.22);
+  color: #c7d2fe;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* ── Form ── */
 .form {
   display: flex;
   flex-direction: column;
@@ -105,17 +106,17 @@
 .label {
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: #cbd5e1;
   letter-spacing: 0.2px;
 }
 
 .input {
   width: 100%;
   padding: 11px 14px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  color: #0f172a;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  color: #f1f5f9;
   font-size: 14px;
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -124,44 +125,42 @@
 }
 
 .input::placeholder {
-  color: #cbd5e1;
+  color: #64748b;
 }
 
 .input:focus {
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-/* ── Error ── */
 .error {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 9px;
   padding: 10px 12px;
-  color: #dc2626;
+  color: #fca5a5;
   font-size: 13px;
 }
 
 .notice {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 9px;
   padding: 10px 12px;
-  color: #059669;
+  color: #6ee7b7;
   font-size: 13px;
 }
 
-/* ── Submit Button ── */
 .submitBtn {
   width: 100%;
   padding: 12px;
   background: linear-gradient(135deg, #6366f1, #38bdf8);
   border: none;
-  border-radius: 8px;
+  border-radius: 9px;
   color: #fff;
   font-size: 14px;
   font-weight: 600;
@@ -169,6 +168,7 @@
   transition: opacity 0.2s, transform 0.1s;
   margin-top: 4px;
   letter-spacing: 0.2px;
+  font-family: inherit;
 }
 
 .submitBtn:hover:not(:disabled) {
@@ -184,7 +184,6 @@
   cursor: not-allowed;
 }
 
-/* ── Toggle link ── */
 .switchRow {
   text-align: center;
   margin-top: 20px;
@@ -195,7 +194,7 @@
 .switchLink {
   background: none;
   border: none;
-  color: #6366f1;
+  color: #93c5fd;
   font-size: 13px;
   cursor: pointer;
   padding: 0;

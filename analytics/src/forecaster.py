@@ -36,17 +36,14 @@ from shared import device_models_col, serialize_model, deserialize_model
 
 log = logging.getLogger("analytics.forecaster")
 
-# Feature order — must stay in sync between training and walk-forward predict.
 FORECAST_FEATURES = [
     "hour_sin", "hour_cos", "dow_sin", "dow_cos", "is_weekend",
     "lag_24h", "lag_168h",
 ]
 
-DEFAULT_TARIFF_EGP_PER_KWH = 1.5  # matches the backend ETL / seed tariff
-MIN_TRAIN_ROWS = 168              # need ≥ one full week after the 168h lag
+DEFAULT_TARIFF_EGP_PER_KWH = 1.5
+MIN_TRAIN_ROWS = 168
 
-
-# ── Features ──────────────────────────────────────────────────────────────────
 def _calendar_feats(ts: pd.Timestamp) -> dict:
     """Cyclical calendar features for one timestamp. Single source of truth so
     training (vectorised) and predict (scalar walk-forward) can never drift."""
@@ -58,7 +55,6 @@ def _calendar_feats(ts: pd.Timestamp) -> dict:
         "is_weekend": 1.0 if ts.dayofweek >= 5 else 0.0,
     }
 
-
 def forecast_features(df: pd.DataFrame) -> pd.DataFrame:
     """Time-aware features for training. Assumes one device's contiguous hourly
     rows (shift-based lags); gaps just make a few lag rows approximate, which the
@@ -67,10 +63,9 @@ def forecast_features(df: pd.DataFrame) -> pd.DataFrame:
     times = pd.to_datetime(df["interval_start"], utc=True)
     cal = pd.DataFrame([_calendar_feats(ts) for ts in times], index=df.index)
     df = pd.concat([df, cal], axis=1)
-    df["lag_24h"]  = df["total_energy_kWh"].shift(24)    # same hour yesterday
-    df["lag_168h"] = df["total_energy_kWh"].shift(168)   # same hour last week
+    df["lag_24h"]  = df["total_energy_kWh"].shift(24)
+    df["lag_168h"] = df["total_energy_kWh"].shift(168)
     return df
-
 
 def build_profile(df: pd.DataFrame) -> dict:
     """24x7 mean-kWh table keyed "hour:dow" — the robust fallback layer."""
@@ -78,7 +73,6 @@ def build_profile(df: pd.DataFrame) -> dict:
     g = (df.assign(_h=times.dt.hour, _d=times.dt.dayofweek)
            .groupby(["_h", "_d"])["total_energy_kWh"].mean())
     return {f"{int(h)}:{int(d)}": float(v) for (h, d), v in g.items()}
-
 
 def effective_tariff(df: pd.DataFrame) -> float:
     """Derive EGP/kWh from the device's own data instead of hardcoding, so a
@@ -89,8 +83,6 @@ def effective_tariff(df: pd.DataFrame) -> float:
         return cost / energy
     return DEFAULT_TARIFF_EGP_PER_KWH
 
-
-# ── Training ──────────────────────────────────────────────────────────────────
 def train_forecaster(device_name: str, device_df: pd.DataFrame) -> dict:
     """Fit Ridge on time + lag features and store model + profile + tariff in the
     device's existing device_models doc. Called from infer.py right where the
@@ -110,7 +102,7 @@ def train_forecaster(device_name: str, device_df: pd.DataFrame) -> dict:
     device_models_col.update_one(
         {"device_name": device_name},
         {"$set": {
-            "forecast_blob":       blob,                # None → profile-only
+            "forecast_blob":       blob,
             "forecast_profile":    profile,
             "forecast_features":   FORECAST_FEATURES,
             "forecast_tariff":     round(tariff, 6),
@@ -124,7 +116,6 @@ def train_forecaster(device_name: str, device_df: pd.DataFrame) -> dict:
     return {"device_name": device_name, "method": "ridge" if blob else "profile",
             "n_train": n_train}
 
-
 def load_forecaster(device_name: str):
     """Returns (model_or_None, profile_dict, tariff, feature_order)."""
     doc = device_models_col.find_one({"device_name": device_name}) or {}
@@ -135,11 +126,8 @@ def load_forecaster(device_name: str):
     feats   = doc.get("forecast_features", FORECAST_FEATURES)
     return model, profile, tariff, feats
 
-
-# ── Prediction (walk-forward) ─────────────────────────────────────────────────
 def _profile_mean(profile: dict) -> float:
     return sum(profile.values()) / len(profile) if profile else 0.0
-
 
 def forecast_device(device_name: str, device_df: pd.DataFrame,
                     horizon_hours: int) -> dict:
@@ -155,7 +143,7 @@ def forecast_device(device_name: str, device_df: pd.DataFrame,
 
     df = device_df.sort_values("interval_start").copy()
     model, profile, tariff, feats = load_forecaster(device_name)
-    if not profile:                       # never trained — derive on the fly
+    if not profile:
         profile = build_profile(df)
         tariff  = effective_tariff(df)
 
@@ -182,7 +170,7 @@ def forecast_device(device_name: str, device_df: pd.DataFrame,
             row["lag_168h"] = lag(ts, 168)
             X = pd.DataFrame([[row[f] for f in feats]], columns=feats)
             pred = float(model.predict(X)[0])
-            pred = min(max(pred, 0.0), max(max_kwh * 1.5, fallback))  # clamp
+            pred = min(max(pred, 0.0), max(max_kwh * 1.5, fallback))
         else:
             pred = profile_val(ts)
         series[ts] = pred

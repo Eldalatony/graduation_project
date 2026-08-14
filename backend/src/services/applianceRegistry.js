@@ -1,7 +1,5 @@
 const pool = require('../config/db');
 
-// In-memory cache of active appliances keyed by "gatewayId::nodeKey".
-// Refreshed on a timer and on CRUD operations.
 const cache = new Map();
 let lastLoaded = 0;
 const TTL_MS = 30_000;

@@ -1,7 +1,5 @@
--- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Users Table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR NOT NULL,
@@ -14,7 +12,6 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Appliances Table
 CREATE TABLE appliances (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -22,10 +19,10 @@ CREATE TABLE appliances (
     node_key VARCHAR NOT NULL,
     gateway_id VARCHAR NOT NULL,
     is_active BOOLEAN DEFAULT false,
+    room VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2b. Spaces Table (user-defined rooms/areas; appliances.room references name)
 CREATE TABLE spaces (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -34,17 +31,16 @@ CREATE TABLE spaces (
     UNIQUE (user_id, name)
 );
 
--- 3. Schedules Table
 CREATE TABLE schedules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     appliance_id UUID REFERENCES appliances(id) ON DELETE CASCADE,
     action VARCHAR NOT NULL CHECK (action IN ('on', 'off')),
-    cron_expression VARCHAR NOT NULL,
+    cron_expression VARCHAR,
+    timer_minutes INT,
     is_enabled BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Alerts Table
 CREATE TABLE alerts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,

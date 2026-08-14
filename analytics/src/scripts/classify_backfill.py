@@ -18,7 +18,6 @@ import sys
 import logging
 import pandas as pd
 
-# Make the sibling modules in src/ importable when run from src/scripts/.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared import data_col, alerts_col, device_models_col
@@ -27,7 +26,6 @@ from model_manager import engineer_features
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
 log = logging.getLogger("analytics.backfill")
-
 
 def baseline_for(device_name: str, cache: dict) -> dict:
     """Compute (and cache + persist) a device's normal baseline."""
@@ -38,7 +36,6 @@ def baseline_for(device_name: str, cache: dict) -> dict:
     if records:
         df = engineer_features(pd.DataFrame(records))
         baseline = compute_baseline(df)
-        # Persist so live inference can reuse it without recomputing.
         device_models_col.update_one(
             {"device_name": device_name},
             {"$set": {"baseline": baseline}},
@@ -47,7 +44,6 @@ def baseline_for(device_name: str, cache: dict) -> dict:
         baseline = {}
     cache[device_name] = baseline
     return baseline
-
 
 def run_backfill() -> dict:
     cache: dict = {}
@@ -74,7 +70,6 @@ def run_backfill() -> dict:
     for atype, n in sorted(counts.items(), key=lambda kv: -kv[1]):
         log.info(f"  {TYPE_LABELS.get(atype, atype):<20} {n}")
     return {"updated": updated, "by_type": counts}
-
 
 if __name__ == "__main__":
     result = run_backfill()

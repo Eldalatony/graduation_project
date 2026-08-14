@@ -4,7 +4,7 @@ const applianceHistorySchema = new mongoose.Schema(
   {
     user_id: { type: String, required: true, index: true },
     appliance_id: { type: String, required: true, index: true },
-    period: { type: String, required: true }, // e.g. "2026-04-23T14"
+    period: { type: String, required: true },
     aggregation_type: { type: String, enum: ['hourly', 'daily'], default: 'hourly' },
     total_energy_kWh_enc: { type: String },
     avg_power_W_enc: { type: String },

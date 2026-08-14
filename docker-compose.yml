@@ -43,7 +43,7 @@ services:
   # === DATABASE ADMIN UIs (browser interfaces) ===
   # pgAdmin -> http://localhost:5050   (PostgreSQL)
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:9.17
     container_name: shemms_pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
@@ -59,7 +59,7 @@ services:
 
   # mongo-express -> http://localhost:8081   (MongoDB)
   mongo-express:
-    image: mongo-express:latest
+    image: mongo-express:1.0.2
     container_name: shemms_mongo_express
     environment:
       ME_CONFIG_MONGODB_SERVER: mongodb

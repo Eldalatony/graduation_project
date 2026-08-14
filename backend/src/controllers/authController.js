@@ -4,7 +4,7 @@ const pool = require('../config/db');
 const registry = require('../services/applianceRegistry');
 const { sendOtpEmail } = require('../services/mailer');
 
-const OTP_TTL_MS = 10 * 60 * 1000; // codes are valid for 10 minutes
+const OTP_TTL_MS = 10 * 60 * 1000;
 
 const SALT_ROUNDS = 12;
 
@@ -15,7 +15,6 @@ const SAMPLE_APPLIANCES = [
   { name: 'Air Conditioner', node_key: 'climate', room: 'Living Room' },
 ];
 
-// Default Egyptian residential tariff (mid-tier). Users can change it later in Settings.
 const DEFAULT_TARIFF_RATE = 1.45;
 
 const seedSampleAppliances = async (userId) => {
@@ -36,7 +35,6 @@ const signToken = (user) =>
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 
-// POST /api/auth/register
 const register = async (req, res) => {
   const { name, email, password, tariff_rate } = req.body;
 
@@ -79,7 +77,6 @@ const register = async (req, res) => {
   }
 };
 
-// POST /api/auth/login
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -114,9 +111,6 @@ const login = async (req, res) => {
   }
 };
 
-// POST /api/auth/forgot-password
-// Body: { email }  ->  emails a 6-digit code (always returns a generic 200 so
-// the endpoint can't be used to discover which emails are registered).
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
@@ -133,7 +127,7 @@ const forgotPassword = async (req, res) => {
       return genericResponse();
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
+    const code = String(Math.floor(100000 + Math.random() * 900000));
     const otp_hash = await bcrypt.hash(code, SALT_ROUNDS);
     const expires = new Date(Date.now() + OTP_TTL_MS);
 
@@ -151,8 +145,6 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// POST /api/auth/reset-password
-// Body: { email, code, newPassword }
 const resetPassword = async (req, res) => {
   const { email, code, newPassword } = req.body;
 

@@ -12,7 +12,6 @@
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-/* ── Brand ── */
 .brand {
   display: flex;
   align-items: center;
@@ -52,7 +51,6 @@
   color: #0f172a;
 }
 
-/* ── Nav links ── */
 .links {
   display: flex;
   align-items: center;
@@ -82,7 +80,6 @@
   color: #6366f1;
 }
 
-/* ── Right side ── */
 .right {
   display: flex;
   align-items: center;
@@ -90,7 +87,6 @@
   flex-shrink: 0;
 }
 
-/* ── Bell ── */
 .bellWrap {
   position: relative;
 }
@@ -140,7 +136,6 @@
   line-height: 1;
 }
 
-/* ── Dropdown ── */
 .dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -181,7 +176,6 @@
 
 .markAllBtn:hover { text-decoration: underline; }
 
-/* ── Alert list ── */
 .alertList {
   max-height: 380px;
   overflow-y: auto;
@@ -266,7 +260,6 @@
   margin-top: 7px;
 }
 
-/* ── Empty state ── */
 .empty {
   padding: 40px 20px;
   text-align: center;
@@ -276,7 +269,6 @@
 
 .emptyIcon { font-size: 28px; margin-bottom: 8px; }
 
-/* ── Logout ── */
 .logoutBtn {
   padding: 6px 14px;
   background: none;
@@ -294,4 +286,140 @@
   border-color: #ef4444;
   color: #ef4444;
   background: #fef2f2;
+}
+
+.dark {
+  background: rgba(11, 17, 32, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.dark .name { color: #f1f5f9; }
+.dark .link { color: #94a3b8; }
+.dark .link:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+.dark .linkActive { background: rgba(99, 102, 241, 0.22); color: #a5b4fc; }
+.dark .linkActive:hover { background: rgba(99, 102, 241, 0.28); color: #c7d2fe; }
+
+.dark .bellBtn {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.dark .bellBtn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+.dark .bellBtnActive { background: rgba(99, 102, 241, 0.22); border-color: rgba(99, 102, 241, 0.4); }
+.dark .badge { border-color: #0b1120; }
+
+.dark .logoutBtn {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+}
+.dark .logoutBtn:hover { border-color: #ef4444; color: #fca5a5; background: rgba(239, 68, 68, 0.12); }
+
+.dark .dropdown { background: #131c31; border-color: rgba(255, 255, 255, 0.1); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); }
+.dark .dropHeader { border-bottom-color: rgba(255, 255, 255, 0.08); }
+.dark .dropTitle { color: #f1f5f9; }
+.dark .alertItem { border-bottom-color: rgba(255, 255, 255, 0.05); }
+.dark .alertItem:hover { background: rgba(255, 255, 255, 0.04); }
+.dark .alertUnread { background: rgba(99, 102, 241, 0.08); }
+.dark .alertUnread:hover { background: rgba(99, 102, 241, 0.14); }
+.dark .alertDevice { color: #e2e8f0; }
+.dark .alertMsg { color: #94a3b8; }
+.dark .empty { color: #94a3b8; }
+
+.dark .hamburger { border-color: rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.04); }
+.dark .hamburger span { background: #e2e8f0; }
+.dark .mobileMenu { background: #131c31; border-color: rgba(255, 255, 255, 0.1); }
+.dark .mobileLink { color: #cbd5e1; }
+.dark .mobileLink:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+.dark .mobileLinkActive { background: rgba(99, 102, 241, 0.22); color: #a5b4fc; }
+.dark .mobileDivider { background: rgba(255, 255, 255, 0.08); }
+.dark .mobileLogout { color: #fca5a5; }
+
+.menuWrap { position: relative; display: none; }
+
+.hamburger {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.hamburger:hover { background: #f1f5f9; }
+.hamburger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: #334155;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.hamburgerOpen span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hamburgerOpen span:nth-child(2) { opacity: 0; }
+.hamburgerOpen span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.mobileMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 200;
+}
+.mobileLink {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.mobileLink:hover { background: #f1f5f9; color: #0f172a; }
+.mobileLinkActive { background: #ede9fe; color: #6366f1; }
+.mobileDivider { height: 1px; background: #f1f5f9; margin: 6px 4px; }
+.mobileLogout {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ef4444;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.mobileLogout:hover { background: #fef2f2; }
+
+@media (max-width: 768px) {
+  .nav { padding: 0 16px; }
+  .links { display: none; }
+  .logoutBtn { display: none; }
+  .bellWrap { display: none; }
+  .menuWrap { display: block; }
+  .name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }

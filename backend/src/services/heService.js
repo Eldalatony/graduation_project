@@ -1,11 +1,5 @@
 const crypto = require('crypto');
 
-// Phase 2 HE stand-in: the architecture calls for TenSEAL (CKKS) encryption.
-// TenSEAL is Python-only, so the production pipeline delegates to the analytics
-// service. For the Phase 2 backend, we use AES-256-GCM as a drop-in at-rest
-// encryption layer with the same interface (encryptNumber / decryptNumber).
-// The Python analytics service replaces this with real HE ops in Phase 4.
-
 const ALGO = 'aes-256-gcm';
 
 const getKey = () => {

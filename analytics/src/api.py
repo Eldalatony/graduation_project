@@ -23,6 +23,7 @@ Endpoints:
 from flask import Flask, jsonify, request, send_file, g
 from flask_cors import CORS
 import logging
+import re
 import time
 import io
 import pandas as pd
@@ -38,20 +39,14 @@ from api_ui_endpoints import ui_bp
 
 log = logging.getLogger("analytics.api")
 
-# ── Config ────────────────────────────────────────────────────────────────────
-
 VALID_SORT_OPTIONS    = {"score", "time"}
 VALID_SEVERITY_LEVELS = {"low", "medium", "high", "critical"}
 MAX_PAGE_SIZE         = 100
 MAX_LIMIT             = 200
 
-# ── App setup ─────────────────────────────────────────────────────────────────
-
 app = Flask(__name__)
 app.register_blueprint(ui_bp)
 
-# HE layer needs tenseal which may fail to install on some platforms; load it
-# defensively so the rest of the API still serves if HE isn't available.
 try:
     from he_layer import he_bp
     app.register_blueprint(he_bp)
@@ -60,8 +55,6 @@ except Exception as e:
     log.warning(f"HE blueprint NOT registered ({type(e).__name__}: {e}) — /api/he/* will 404")
 
 CORS(app)
-
-# ── Request / response logging ────────────────────────────────────────────────
 
 @app.before_request
 def before_request():
@@ -74,16 +67,12 @@ def after_request(response):
         log.info(f"{request.method} {request.path}  →  {response.status_code}  ({duration_ms}ms)")
     return response
 
-# ── Response helpers ──────────────────────────────────────────────────────────
-
 def ok(data):
     return jsonify({"status": "ok", "data": data})
 
 def err(message, code=400):
     log.warning(f"Bad request [{code}]: {message}")
     return jsonify({"status": "error", "message": message}), code
-
-# ── Input validation helpers ──────────────────────────────────────────────────
 
 def validate_date(value: str, param_name: str):
     """Returns (date_str, None) or (None, error_response)."""
@@ -115,8 +104,9 @@ def validate_appliance_id(appliance_id: str):
         return {}, None
     if data_col.find_one({"node_key": appliance_id}):
         return {"node_key": appliance_id}, None
-    if data_col.find_one({"device_name": {"$regex": f"^{appliance_id}$", "$options": "i"}}):
-        return {"device_name": {"$regex": f"^{appliance_id}$", "$options": "i"}}, None
+    name_filter = {"device_name": {"$regex": f"^{re.escape(appliance_id)}$", "$options": "i"}}
+    if data_col.find_one(name_filter):
+        return name_filter, None
     return None, err(f"Appliance not found: '{appliance_id}'", 404)
 
 def _load_device_df(device_name: str):
@@ -125,8 +115,6 @@ def _load_device_df(device_name: str):
     if not records:
         return None
     return pd.DataFrame(records).sort_values("interval_start")
-
-# ── Favicon silencer ──────────────────────────────────────────────────────────
 
 @app.route("/favicon.ico")
 def favicon():
@@ -137,8 +125,6 @@ def favicon():
         b'\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
     )
     return send_file(io.BytesIO(transparent_png), mimetype="image/png")
-
-# ── 404 handler ───────────────────────────────────────────────────────────────
 
 @app.errorhandler(404)
 def not_found(e):
@@ -152,12 +138,6 @@ def method_not_allowed(e):
 def internal_error(e):
     log.error(f"Internal error: {e}")
     return err("Internal server error", 500)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# HEALTH CHECK
-# GET /api/health
-# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/api/health", methods=["GET"])
 def health():
@@ -173,13 +153,6 @@ def health():
         log.error(f"Health check failed: {e}")
         return err(f"Database unreachable: {e}", 503)
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# DEVICE READINESS
-# GET /api/analytics/devices/status
-# Per-device adaptive-model lifecycle: learning (with % progress) vs ready.
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @app.route("/api/analytics/devices/status", methods=["GET"])
 def devices_status():
     statuses = all_device_status()
@@ -191,15 +164,8 @@ def devices_status():
         "devices":        statuses,
     })
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# DASHBOARD SUMMARY
-# GET /api/analytics/summary
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @app.route("/api/analytics/summary", methods=["GET"])
 def summary():
-    # Grand totals
     grand = next(data_col.aggregate([
         {"$group": {
             "_id":              None,
@@ -211,7 +177,6 @@ def summary():
 
     grand_cost = grand["total_cost_EGP"] or 1
 
-    # Per-device breakdown with share
     device_totals = list(data_col.aggregate([
         {"$group": {
             "_id":              "$device_name",
@@ -234,7 +199,6 @@ def summary():
         for d in device_totals
     ]
 
-    # Projected 30-day bill
     daily_agg = next(data_col.aggregate([
         {"$group": {
             "_id":      {"$dateToString": {"format": "%Y-%m-%d", "date": {"$dateFromString": {"dateString": "$interval_start"}}}},
@@ -249,7 +213,6 @@ def summary():
 
     projected_bill = round(daily_agg["avg_daily_cost"] * 30, 2)
 
-    # Anomaly summary with severity counts
     total_records = grand["total_records"] or 1
     alert_count   = alerts_col.count_documents({})
     anomaly_rate  = round(alert_count / total_records * 100, 3)
@@ -276,7 +239,6 @@ def summary():
     if most_severe:
         most_severe["severity"] = score_to_severity(most_severe["anomaly_score"])
 
-    # Top 3 peak hours
     peak = list(data_col.aggregate([
         {"$group": {
             "_id":              {"$hour": {"$dateFromString": {"dateString": "$interval_start"}}},
@@ -325,13 +287,6 @@ def summary():
         "peak_hours": peak,
     })
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT 1 — Daily consumption  (paginated)
-# GET /api/analytics/:applianceId/daily
-# Query params: ?from  ?to  ?page=1  ?page_size=30
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @app.route("/api/analytics/<appliance_id>/daily", methods=["GET"])
 def daily(appliance_id):
     match, e = validate_appliance_id(appliance_id)
@@ -361,7 +316,7 @@ def daily(appliance_id):
             "total_energy_kWh": {"$sum": "$total_energy_kWh"},
             "total_cost_EGP":   {"$sum": "$total_cost_EGP"},
             "avg_power_W":      {"$avg": "$avg_power_W"},
-            "active_minutes":   {"$sum": "$active_minutes"},    # consistent name
+            "active_minutes":   {"$sum": "$active_minutes"},
         }},
         {"$sort": {"_id.date": 1, "_id.device": 1}},
         {"$project": {
@@ -377,14 +332,13 @@ def daily(appliance_id):
         {"$limit": page_size},
     ]
 
-    # Count total for pagination metadata (without skip/limit)
     count_pipeline = [
         {"$match": match},
         {"$group": {"_id": {"date": {"$dateToString": {"format": "%Y-%m-%d", "date": {"$dateFromString": {"dateString": "$interval_start"}}}}, "device": "$device_name"}}},
         {"$count": "total"}
     ]
     total_records = next(data_col.aggregate(count_pipeline), {}).get("total", 0)
-    total_pages   = max(1, -(-total_records // page_size))   # ceiling division
+    total_pages   = max(1, -(-total_records // page_size))
 
     results = list(data_col.aggregate(pipeline))
     return ok({
@@ -398,13 +352,6 @@ def daily(appliance_id):
         "count":   len(results),
         "records": results,
     })
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT 2 — Weekly consumption
-# GET /api/analytics/:applianceId/weekly
-# Query params: ?from  ?to
-# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/api/analytics/<appliance_id>/weekly", methods=["GET"])
 def weekly(appliance_id):
@@ -450,12 +397,6 @@ def weekly(appliance_id):
     results = list(data_col.aggregate(pipeline))
     return ok({"appliance_id": appliance_id, "count": len(results), "records": results})
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT 3 — Monthly consumption and cost
-# GET /api/analytics/:applianceId/monthly
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @app.route("/api/analytics/<appliance_id>/monthly", methods=["GET"])
 def monthly(appliance_id):
     match, e = validate_appliance_id(appliance_id)
@@ -497,13 +438,6 @@ def monthly(appliance_id):
     results = list(data_col.aggregate(pipeline))
     return ok({"appliance_id": appliance_id, "count": len(results), "records": results})
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT 4 — Peak usage hours
-# GET /api/analytics/:applianceId/peak-hours
-# Query params: ?limit=5  (1–24)
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @app.route("/api/analytics/<appliance_id>/peak-hours", methods=["GET"])
 def peak_hours(appliance_id):
     match, e = validate_appliance_id(appliance_id)
@@ -538,12 +472,6 @@ def peak_hours(appliance_id):
 
     results = list(data_col.aggregate(pipeline))
     return ok({"appliance_id": appliance_id, "top_n": limit, "count": len(results), "records": results})
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT 5 — Total cost across all appliances
-# GET /api/analytics/total/cost
-# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/api/analytics/total/cost", methods=["GET"])
 def total_cost():
@@ -589,18 +517,6 @@ def total_cost():
         "per_device": per_device,
     })
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT 6 — Anomaly alerts
-# GET /api/analytics/anomalies
-# Query params:
-#   ?device=Microwave
-#   ?severity=low|medium|high|critical
-#   ?sort=score|time          (default: score)
-#   ?limit=50  ?offset=0
-#   ?from=YYYY-MM-DD  ?to=YYYY-MM-DD
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @app.route("/api/analytics/anomalies", methods=["GET"])
 def anomalies():
     device   = request.args.get("device")
@@ -622,16 +538,14 @@ def anomalies():
     if severity and severity not in VALID_SEVERITY_LEVELS:
         return err(f"'severity' must be one of: {sorted(VALID_SEVERITY_LEVELS)}")
 
-    # Build query
     query = {}
     if device:
-        query["device_name"] = {"$regex": f"^{device}$", "$options": "i"}
+        query["device_name"] = {"$regex": f"^{re.escape(device)}$", "$options": "i"}
     if date_from or date_to:
         query.setdefault("interval_start", {})
         if date_from: query["interval_start"]["$gte"] = f"{date_from}T00:00:00Z"
         if date_to:   query["interval_start"]["$lte"] = f"{date_to}T23:59:59Z"
 
-    # Map severity filter to score range
     if severity:
         thresholds = {
             "critical": {"$lte": SEVERITY_THRESHOLDS["critical"]},
@@ -655,11 +569,9 @@ def anomalies():
         .limit(limit)
     )
 
-    # Add severity label to each alert
     for r in records:
         r["severity"] = score_to_severity(r["anomaly_score"])
 
-    # Summary by device
     summary_raw = list(alerts_col.aggregate([
         {"$match": query},
         {"$group": {
@@ -684,7 +596,6 @@ def anomalies():
         for s in summary_raw
     ]
 
-    # Severity count breakdown
     all_scores = [a["anomaly_score"] for a in alerts_col.find(query, {"_id": 0, "anomaly_score": 1})]
     severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     for sc in all_scores:
@@ -702,13 +613,6 @@ def anomalies():
         "by_device":        by_device,
         "alerts":           records,
     })
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT 7 — Projected monthly bill
-# GET /api/analytics/bill-estimate
-# Query params: ?days=30  (1–365)
-# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/api/analytics/bill-estimate", methods=["GET"])
 def bill_estimate():
@@ -746,9 +650,6 @@ def bill_estimate():
             "_id":            "$device_name",
             "total_cost_EGP": {"$sum": "$total_cost_EGP"},
             "total_energy":   {"$sum": "$total_energy_kWh"},
-            # Count the distinct calendar days each device actually has data for,
-            # rather than assuming a fixed buckets-per-day. Correct for any
-            # aggregation interval (hourly ETL, etc.).
             "days":           {"$addToSet": {"$dateToString": {"format": "%Y-%m-%d",
                                 "date": {"$dateFromString": {"dateString": "$interval_start"}}}}},
         }},
@@ -779,7 +680,6 @@ def bill_estimate():
         "avg_daily_energy_kWh":     round(result["avg_daily_kwh"],  4),
         "per_device":               per_device,
     })
-
 
 def _bill_estimate_seasonal(projection_days: int):
     """Seasonal projection: sum the per-device hourly forecast over the horizon
@@ -822,13 +722,6 @@ def _bill_estimate_seasonal(projection_days: int):
         "per_device":               per_device,
     })
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT 8 — Energy forecast (per device or all)
-# GET /api/analytics/<appliance_id>/forecast
-# Query params: ?hours=168  (1–720)
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @app.route("/api/analytics/<appliance_id>/forecast", methods=["GET"])
 def forecast(appliance_id):
     match, e = validate_appliance_id(appliance_id)
@@ -836,8 +729,6 @@ def forecast(appliance_id):
     horizon, e = validate_int(request.args.get("hours"), "hours", 1, 720, 168)
     if e: return e
 
-    # Resolve the matched filter down to concrete device names (handles
-    # node_key, device name, or "all"). The model is per-device.
     devices = data_col.distinct("device_name", match)
     if not devices:
         return err(f"No data for appliance: '{appliance_id}'", 404)
@@ -848,7 +739,6 @@ def forecast(appliance_id):
         if device_df is not None:
             forecasts.append(forecast_device(device, device_df, horizon))
 
-    # Single device → return its forecast directly; multiple → per-device + totals.
     if len(forecasts) == 1:
         return ok(forecasts[0])
 
@@ -859,9 +749,6 @@ def forecast(appliance_id):
         "total_predicted_kWh":      round(sum(f["total_predicted_kWh"] for f in forecasts), 4),
         "total_predicted_cost_EGP": round(sum(f["total_predicted_cost_EGP"] for f in forecasts), 2),
     })
-
-
-# ── Run ────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     print("\n🚀 Smart Home Analytics API  —  Production Ready")

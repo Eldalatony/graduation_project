@@ -5,8 +5,6 @@ const pool = require('../config/db');
 
 const router = express.Router();
 
-// If no MQTT message has arrived for this many ms, treat the node as offline.
-// The simulator publishes every ~1s and the ESP32 every ~500ms, so 5s is safe.
 const STALE_MS = 5000;
 
 router.get('/', protect, async (req, res) => {
@@ -28,7 +26,6 @@ router.get('/', protect, async (req, res) => {
       const live = snapshot[key];
 
       if (!app.is_active) {
-        // User turned this appliance off → report zeros + idle.
         result[key] = {
           gateway_id:     app.gateway_id,
           node_key:       app.node_key,
@@ -44,8 +41,7 @@ router.get('/', protect, async (req, res) => {
         continue;
       }
 
-      // Appliance is enabled; check whether we still hear from the gateway.
-      const lastSeenMs = live?.timestamp ? new Date(live.timestamp).getTime() : 0;
+      const lastSeenMs = live?.receivedAt || 0;
       const stale = !live || (now - lastSeenMs) > STALE_MS;
 
       if (stale) {

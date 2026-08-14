@@ -11,7 +11,6 @@ dataset too, run seed_synthetic.py (which wipes appliance_data itself).
 import os
 import sys
 
-# Make the sibling modules in src/ importable when run from src/scripts/.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared import db

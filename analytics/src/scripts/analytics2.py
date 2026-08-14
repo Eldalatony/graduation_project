@@ -9,15 +9,10 @@ serves over HTTP. Run: python src/scripts/analytics2.py
 import os
 import sys
 
-# Make the sibling modules in src/ importable when run from src/scripts/.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared import db, data_col as collection
 
-
-# =========================
-# 1. DAILY AGGREGATION
-# =========================
 print("\n📅 Daily Energy Consumption:\n")
 
 daily_pipeline = [
@@ -39,10 +34,6 @@ daily_pipeline = [
 for r in collection.aggregate(daily_pipeline):
     print(f"  {r['_id']}  →  {r['total_energy_kWh']:.4f} kWh  |  {r['total_cost_EGP']:.4f} EGP")
 
-
-# =========================
-# 2. WEEKLY AGGREGATION
-# =========================
 print("\n📆 Weekly Energy Consumption:\n")
 
 weekly_pipeline = [
@@ -63,10 +54,6 @@ for r in collection.aggregate(weekly_pipeline):
     print(f"  Year {r['_id']['year']} Week {r['_id']['week']:02d}  →  "
           f"{r['total_energy_kWh']:.4f} kWh  |  {r['total_cost_EGP']:.4f} EGP")
 
-
-# =========================
-# 3. MONTHLY AGGREGATION
-# =========================
 print("\n🗓️  Monthly Energy Consumption:\n")
 
 monthly_pipeline = [
@@ -87,10 +74,6 @@ for r in collection.aggregate(monthly_pipeline):
     print(f"  {r['_id']['year']}-{r['_id']['month']:02d}  →  "
           f"{r['total_energy_kWh']:.4f} kWh  |  {r['total_cost_EGP']:.4f} EGP")
 
-
-# =========================
-# 4. PEAK USAGE HOURS
-# =========================
 print("\n⚡ Peak Usage Hours (top 5 by total energy):\n")
 
 peak_pipeline = [
@@ -109,10 +92,6 @@ peak_pipeline = [
 for r in collection.aggregate(peak_pipeline):
     print(f"  Hour {r['_id']:02d}:00  →  {r['total_energy_kWh']:.3f} kWh")
 
-
-# =========================
-# 5. ENERGY & COST PER APPLIANCE
-# =========================
 print("\n💡 Energy & Cost per Appliance:\n")
 
 cost_pipeline = [
@@ -135,10 +114,6 @@ for r in collection.aggregate(cost_pipeline):
         f"Avg Power: {r['avg_power_W']:>6.1f} W"
     )
 
-
-# =========================
-# 6. ANOMALY SUMMARY (ground truth labels)
-# =========================
 print("\n🚨 Injected Anomaly Summary (ground truth):\n")
 
 anomaly_pipeline = [
@@ -162,10 +137,6 @@ if rows:
 else:
     print("  (no ground-truth anomaly labels found — normal for real data)")
 
-
-# =========================
-# 7. ALERTS SUMMARY
-# =========================
 alerts_col = db["anomaly_alerts"]
 alert_count = alerts_col.count_documents({})
 

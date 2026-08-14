@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import styles from './page.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { API_URL } from '../lib/api';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -13,11 +12,9 @@ export default function SettingsPage() {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Profile form
   const [name, setName]           = useState('');
-  const [profileMsg, setProfileMsg] = useState(null); // { ok, text }
+  const [profileMsg, setProfileMsg] = useState(null);
   const [profileSaving, setProfileSaving] = useState(false);
-
 
   const token   = () => localStorage.getItem('token');
   const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` });
@@ -31,7 +28,6 @@ export default function SettingsPage() {
       setUser(data.user);
       setName(data.user.name || '');
     } catch {
-      // fail silently — user still sees the form
     } finally {
       setLoading(false);
     }
@@ -69,7 +65,7 @@ export default function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <Navbar activePage="settings" />
+      <Navbar activePage="settings" variant="dark" />
 
       <div className={styles.content}>
         <div className={styles.pageHeader}>
@@ -77,7 +73,6 @@ export default function SettingsPage() {
           <p className={styles.pageSubtitle}>Manage your account and energy preferences</p>
         </div>
 
-        {/* ── Profile card ── */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <div>

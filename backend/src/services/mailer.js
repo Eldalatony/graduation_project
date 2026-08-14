@@ -1,9 +1,3 @@
-// Minimal email sender for password-reset codes.
-//
-// If SMTP env vars are set, it sends a real email via Nodemailer.
-// If they are NOT set, it just prints the code to the server console so the
-// reset flow works locally with zero setup (handy for demos).
-
 let transporter = null;
 
 const smtpConfigured =
@@ -12,7 +6,6 @@ const smtpConfigured =
   process.env.SMTP_PASS !== 'PASTE_YOUR_16_CHAR_APP_PASSWORD_HERE';
 
 if (smtpConfigured) {
-  // Lazy-require so the app still boots if nodemailer isn't installed yet.
   const nodemailer = require('nodemailer');
   transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -21,8 +14,6 @@ if (smtpConfigured) {
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   });
 
-  // Verify the credentials once at startup so problems show up immediately
-  // instead of only when someone tries to reset a password.
   transporter.verify((err) => {
     if (err) {
       console.error(`❌ Email (SMTP) login failed for ${process.env.SMTP_USER}: ${err.message}`);
@@ -35,15 +26,11 @@ if (smtpConfigured) {
   console.log('⚠️  SMTP not configured — password reset codes will print to this console instead of being emailed.');
 }
 
-// ── Email look & feel ───────────────────────────────────────────────────────
-// Everything visual lives here so it's easy to tweak. Email clients (Gmail,
-// Outlook) ignore external CSS, so styles are inlined and the layout uses a
-// simple table — that's the reliable way to style HTML emails.
 const BRAND = {
   name: 'SHEMMS',
   tagline: 'Smart Home Energy Monitor',
-  accent: '#6366f1',   // header / code colour
-  bg: '#f1f5f9',       // page background
+  accent: '#6366f1',
+  bg: '#f1f5f9',
 };
 
 const buildOtpHtml = (code) => `
@@ -94,12 +81,11 @@ const sendOtpEmail = async (to, code) => {
       from: `${BRAND.name} <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
       to,
       subject,
-      text, // plain-text fallback for clients that don't render HTML
+      text,
       html,
     });
     console.log(`📧 Reset code emailed to ${to}`);
   } catch (err) {
-    // Log loudly, and also print the code so the flow isn't fully blocked.
     console.error(`❌ Failed to email reset code to ${to}: ${err.message}`);
     console.log(`📧 [FALLBACK] Password reset code for ${to}: ${code}`);
     throw err;

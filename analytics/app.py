@@ -18,7 +18,6 @@ import os
 import sys
 import logging
 
-# Make the modules in src/ importable as top-level modules.
 SRC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
@@ -30,10 +29,8 @@ logging.basicConfig(
 )
 log = logging.getLogger("analytics.bootstrap")
 
-# Importing api.py constructs the Flask app and registers ui_bp + he_bp.
-from api import app  # noqa: E402
+from api import app
 
-# ── Background incremental inference ──────────────────────────────────────────
 INFER_INTERVAL_MIN = int(os.environ.get("INFER_INTERVAL_MIN", "30"))
 INFER_ENABLED      = os.environ.get("INFER_ENABLED", "true").lower() == "true"
 
@@ -54,14 +51,13 @@ def _start_scheduler():
         lambda: _safe_infer(run_inference),
         "interval",
         minutes=INFER_INTERVAL_MIN,
-        next_run_time=None,  # don't auto-fire on startup; first tick is one interval out
+        next_run_time=None,
         id="incremental_inference",
         max_instances=1,
         coalesce=True,
     )
     scheduler.start()
     log.info(f"Background inference scheduled every {INFER_INTERVAL_MIN} min")
-
 
 def _safe_infer(fn):
     try:
@@ -70,9 +66,7 @@ def _safe_infer(fn):
     except Exception as ex:
         log.error(f"Inference tick failed: {ex}")
 
-
 _start_scheduler()
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("FLASK_PORT", 5000))

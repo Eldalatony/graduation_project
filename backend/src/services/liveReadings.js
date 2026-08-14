@@ -9,6 +9,7 @@ const init = () => {
       gateway_id: r.gatewayId,
       node_key: r.nodeKey,
       appliance_name: r.applianceName,
+      receivedAt: Date.now(),
       timestamp: r.timestamp || new Date().toISOString(),
       power_W: r.powerW,
       current_A: r.currentA,

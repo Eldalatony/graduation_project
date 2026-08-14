@@ -1,8 +1,9 @@
 const pool = require('../config/db');
 const registry = require('../services/applianceRegistry');
-const { publishControl } = require('../services/mqttService');
+const { publishControl, isRelayGateway } = require('../services/mqttService');
 const { getLiveReadings } = require('../services/influxService');
 const { ensureSpace } = require('./spaceController');
+const scheduler = require('../services/schedulerService');
 
 const DEFAULT_GATEWAY = process.env.DEFAULT_GATEWAY_ID || 'ESP32_Main_Hub';
 
@@ -77,6 +78,7 @@ const deleteAppliance = async (req, res) => {
     );
     if (rowCount === 0) return res.status(404).json({ message: 'Appliance not found' });
     registry.invalidate();
+    await scheduler.reloadAll();
     res.json({ message: 'Appliance deleted' });
   } catch (err) {
     console.error('Delete appliance error:', err.message);
@@ -105,13 +107,16 @@ const controlAppliance = async (req, res) => {
     const appliance = await ownsAppliance(req.user.id, id);
     if (!appliance) return res.status(404).json({ message: 'Appliance not found' });
 
-    const published = publishControl({
-      gatewayId: appliance.gateway_id,
-      nodeKey: appliance.node_key,
-      applianceId: appliance.id,
-      command: normalized,
-      issuedBy: req.user.id,
-    });
+    const relayBacked = isRelayGateway(appliance.gateway_id);
+    const published = relayBacked
+      ? publishControl({
+          gatewayId: appliance.gateway_id,
+          nodeKey: appliance.node_key,
+          applianceId: appliance.id,
+          command: normalized,
+          issuedBy: req.user.id,
+        })
+      : null;
 
     await pool.query(
       `UPDATE appliances SET is_active = $1 WHERE id = $2`,
@@ -119,7 +124,12 @@ const controlAppliance = async (req, res) => {
     );
     registry.invalidate();
 
-    res.json({ message: 'Control command published', command: normalized, mqtt: published });
+    res.json({
+      message: relayBacked ? 'Control command published' : 'Appliance state updated',
+      command: normalized,
+      relay_backed: relayBacked,
+      mqtt: published,
+    });
   } catch (err) {
     console.error('Control appliance error:', err.message);
     res.status(500).json({ message: 'Internal server error' });

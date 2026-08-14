@@ -4,16 +4,16 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f0f4ff;
-  background-image:
-    radial-gradient(ellipse at 15% 60%, rgba(56, 189, 248, 0.15) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 55%);
+  background:
+    radial-gradient(1100px 600px at 15% 60%, rgba(34, 211, 238, 0.16), transparent 55%),
+    radial-gradient(1000px 560px at 85% 18%, rgba(99, 102, 241, 0.18), transparent 55%),
+    #0b1120;
+  color: #e2e8f0;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   padding: 40px 24px;
   text-align: center;
 }
 
-/* ── Logo ── */
 .logoIcon {
   width: 64px;
   height: 64px;
@@ -24,23 +24,22 @@
   justify-content: center;
   font-size: 32px;
   margin: 0 auto 20px;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 8px 28px rgba(99, 102, 241, 0.45);
 }
 
 .brand {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: #6366f1;
+  color: #67e8f9;
   margin-bottom: 16px;
 }
 
-/* ── Hero text ── */
 .headline {
   font-size: 33px;
   font-weight: 800;
-  color: #0f172a;
+  color: #f8fafc;
   line-height: 1.25;
   margin: 0 0 16px;
   letter-spacing: -0.4px;
@@ -48,7 +47,7 @@
 }
 
 .headline span {
-  background: linear-gradient(135deg, #6366f1, #38bdf8);
+  background: linear-gradient(135deg, #a5b4fc, #67e8f9);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -56,13 +55,12 @@
 
 .sub {
   font-size: 17px;
-  color: #64748b;
+  color: #94a3b8;
   max-width: 440px;
   line-height: 1.6;
   margin: 0 auto 40px;
 }
 
-/* ── Features ── */
 .features {
   display: flex;
   gap: 12px;
@@ -75,21 +73,20 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 100px;
   padding: 8px 16px;
   font-size: 13px;
-  color: #475569;
+  color: #cbd5e1;
   font-weight: 500;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .featureIcon {
   font-size: 15px;
 }
 
-/* ── CTA ── */
 .cta {
   display: inline-flex;
   align-items: center;
@@ -102,7 +99,7 @@
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.45);
   transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
   font-family: inherit;
   letter-spacing: 0.2px;
@@ -111,7 +108,7 @@
 .cta:hover {
   opacity: 0.92;
   transform: translateY(-1px);
-  box-shadow: 0 6px 28px rgba(99, 102, 241, 0.38);
+  box-shadow: 0 6px 32px rgba(99, 102, 241, 0.55);
 }
 
 .cta:active {
@@ -127,9 +124,8 @@
   transform: translateX(3px);
 }
 
-/* ── Footer note ── */
 .note {
   margin-top: 20px;
   font-size: 12px;
-  color: #94a3b8;
+  color: #64748b;
 }

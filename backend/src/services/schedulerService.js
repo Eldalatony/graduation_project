@@ -1,10 +1,9 @@
 const cron = require('node-cron');
 const pool = require('../config/db');
 const { publishControl } = require('./mqttService');
+const registry = require('./applianceRegistry');
 
-// Map schedule.id → cron task
 const tasks = new Map();
-// Map schedule.id → setTimeout handle
 const timerHandles = new Map();
 
 const executeSchedule = async (row) => {
@@ -21,6 +20,7 @@ const executeSchedule = async (row) => {
       `UPDATE appliances SET is_active = $1 WHERE id = $2`,
       [command === 'turn_on', row.appliance_id]
     );
+    registry.invalidate();
   } catch (err) {
     console.error(`❌ Schedule ${row.id} execute error:`, err.message);
   }
@@ -64,7 +64,6 @@ const registerTimer = (row) => {
   const delay  = fireAt - Date.now();
 
   if (delay <= 0) {
-    // Already past fire time — disable without firing
     pool.query(`UPDATE schedules SET is_enabled = false WHERE id = $1`, [row.id]).catch(() => {});
     return;
   }

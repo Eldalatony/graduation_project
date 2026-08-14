@@ -5,7 +5,7 @@ const ApplianceHistory = require('../models/applianceHistory');
 const ApplianceData = require('../models/applianceData');
 const registry = require('./applianceRegistry');
 
-const ETL_CRON = process.env.ETL_CRON || '5 * * * *'; // hourly at :05
+const ETL_CRON = process.env.ETL_CRON || '5 * * * *';
 const ETL_LOOKBACK_MIN = Number(process.env.ETL_LOOKBACK_MIN || 65);
 
 const periodKey = (date) => {
@@ -13,7 +13,6 @@ const periodKey = (date) => {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}T${String(d.getUTCHours()).padStart(2, '0')}`;
 };
 
-// "2026-04-23T14" → ["2026-04-23T14:00:00Z", "2026-04-23T15:00:00Z"]
 const periodToIsoRange = (period) => {
   const start = new Date(`${period}:00:00Z`);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
@@ -34,7 +33,6 @@ const runOnce = async () => {
     return;
   }
 
-  // Group by (appliance_id, hour-bucket)
   const groups = new Map();
   for (const r of rows) {
     if (!r.appliance_id) continue;
@@ -77,7 +75,6 @@ const runOnce = async () => {
     const maxPower = g.power_values.length ? Math.max(...g.power_values) : 0;
     const minPower = g.power_values.length ? Math.min(...g.power_values) : 0;
 
-    // ── Encrypted history (existing) ────────────────────────────────────────
     try {
       await ApplianceHistory.updateOne(
         { appliance_id: g.appliance_id, period: g.period, aggregation_type: 'hourly' },
@@ -103,15 +100,9 @@ const runOnce = async () => {
       console.error('❌ ETL upsert (history) error:', err.message);
     }
 
-    // ── Plaintext mirror for analytics service ──────────────────────────────
-    // Analytics is a trusted internal service that needs raw values for ML.
-    // It runs in the same Docker network and never exposes this collection
-    // to clients (the backend proxy is the only public-facing path).
     try {
       const appliance = await registry.lookupById(g.appliance_id);
       if (!appliance) {
-        // Appliance was removed from Postgres after the readings landed —
-        // skip the plaintext write to avoid orphan documents.
         continue;
       }
 

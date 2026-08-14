@@ -29,7 +29,6 @@ import pandas as pd
 
 from shared import INTERVAL_MINUTES
 
-# Human-friendly display names (frontend can also derive these by replacing "_").
 TYPE_LABELS = {
     "power_spike":       "Power spike",
     "stuck_on":          "Stuck on",
@@ -38,7 +37,6 @@ TYPE_LABELS = {
     "high_power_draw":   "High power draw",
     "unusual_pattern":   "Unusual pattern",
 }
-
 
 def compute_baseline(device_df: pd.DataFrame) -> dict:
     """
@@ -69,7 +67,6 @@ def compute_baseline(device_df: pd.DataFrame) -> dict:
         "active_fraction":      float((df["active_minutes"] > 0).mean()) if len(df) else 0.0,
     }
 
-
 def classify_anomaly(avg_power_W: float, max_power_W: float,
                      active_minutes: float, runtime_ratio: float,
                      baseline: dict | None = None) -> str:
@@ -90,39 +87,28 @@ def classify_anomaly(avg_power_W: float, max_power_W: float,
     act = float(active_minutes or 0.0)
     rr  = float(runtime_ratio or 0.0)
 
-    # 1) Abnormal idle — a normally-active device draws essentially nothing.
     if act == 0 or avg < 1.0:
         return "abnormal_idle" if typically_active >= 0.2 else "unusual_pattern"
 
-    # A "peaky" interval: the momentary max towers over the device's normal peak
-    # (or over its own average), which is the signature of a spike.
     peaky = (max_p95 > 0 and mx > max_p95 * 1.4) or (mx > avg * 4 and mx > 300)
 
-    # 2) Power spike — an extreme peak that is not a full-interval run. The peak
-    #    towering over the device's normal max is the tell; duration only has to
-    #    fall short of "stuck on" (handled next).
     if peaky and rr < 0.85:
         return "power_spike"
 
-    # 3) Stuck on — runs almost the whole interval.
     if rr >= 0.85:
         elevated = (avg_p95 > 0 and avg > avg_p95) or (avg_p50 > 0 and avg > avg_p50 * 1.4)
         if elevated:
             return "stuck_on"
-        # Full runtime at normal power: long-running rather than over-powered.
         if act_p95 > 0 and act > act_p95:
             return "excessive_runtime"
         return "stuck_on"
 
-    # 4) Excessive runtime — active far longer than usual at normal-ish power.
     if act_p95 > 0 and act > act_p95 * 1.2:
         return "excessive_runtime"
 
-    # 5) High power draw — average well above normal during partial runtime.
     if (avg_p95 > 0 and avg > avg_p95) or (avg_p50 > 0 and avg > avg_p50 * 1.6):
         return "high_power_draw"
 
-    # 6) Peaky but moderate runtime — still best described as a spike.
     if peaky:
         return "power_spike"
 

@@ -4,8 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import styles from './page.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { API_URL } from '../lib/api';
 
 const DAYS = [
   { label: 'Mon', value: 1 },
@@ -166,7 +165,7 @@ export default function SchedulesPage() {
       });
       if (!res.ok) return;
       setSchedules(prev => prev.map(x => x.id === s.id ? { ...x, is_enabled: !x.is_enabled } : x));
-    } catch { /* silent */ }
+    } catch {}
   };
 
   const handleDelete = async (s) => {
@@ -176,12 +175,12 @@ export default function SchedulesPage() {
       if (handleAuth(res.status)) return;
       if (!res.ok) return;
       setSchedules(prev => prev.filter(x => x.id !== s.id));
-    } catch { /* silent */ }
+    } catch {}
   };
 
   return (
     <div className={styles.page}>
-      <Navbar activePage="schedules" />
+      <Navbar activePage="schedules" variant="dark" />
 
       <div className={styles.content}>
         <div className={styles.pageHeader}>
@@ -231,7 +230,6 @@ export default function SchedulesPage() {
         )}
       </div>
 
-      {/* ── Add Schedule Modal ── */}
       {modalOpen && (
         <div className={styles.overlay} onClick={e => e.target === e.currentTarget && closeModal()}>
           <div className={styles.modal}>
@@ -245,7 +243,6 @@ export default function SchedulesPage() {
 
                 {error && <div className={styles.modalError}>⚠ {error}</div>}
 
-                {/* Device */}
                 <div className={styles.field}>
                   <label className={styles.label}>Device</label>
                   <select
@@ -261,7 +258,6 @@ export default function SchedulesPage() {
                   </select>
                 </div>
 
-                {/* Action */}
                 <div className={styles.field}>
                   <label className={styles.label}>Action</label>
                   <div className={styles.actionTabs}>
@@ -278,7 +274,6 @@ export default function SchedulesPage() {
                   </div>
                 </div>
 
-                {/* Schedule Type */}
                 <div className={styles.field}>
                   <label className={styles.label}>Schedule Type</label>
                   <div className={styles.typeTabs}>
@@ -297,7 +292,6 @@ export default function SchedulesPage() {
 
                 {form.scheduleType === 'fixed' ? (
                   <>
-                    {/* Time */}
                     <div className={styles.field}>
                       <label className={styles.label}>Time</label>
                       <input
@@ -309,7 +303,6 @@ export default function SchedulesPage() {
                       />
                     </div>
 
-                    {/* Days */}
                     <div className={styles.field}>
                       <label className={styles.label}>Repeat on</label>
                       <div className={styles.daysRow}>
@@ -330,7 +323,6 @@ export default function SchedulesPage() {
                     </div>
                   </>
                 ) : (
-                  /* Timer */
                   <div className={styles.field}>
                     <label className={styles.label}>Run after</label>
                     <div className={styles.timerRow}>

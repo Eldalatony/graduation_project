@@ -34,19 +34,9 @@ from datetime import datetime, timezone
 
 from shared import data_col
 
-# CKKS parameters — tuned for energy analytics:
-#   poly_modulus_degree: controls security vs performance (8192 = 128-bit security)
-#   coeff_mod_bit_sizes: precision levels — [60, 40, 40, 60] gives ~3 levels of
-#                        multiplication depth (sufficient for mean = sum / count)
-#   global_scale:        2^40 balances precision vs noise for float aggregations
 CKKS_POLY_MOD_DEGREE  = 8192
 CKKS_COEFF_MOD_BITS   = [60, 40, 40, 60]
 CKKS_SCALE            = 2 ** 40
-
-# ── TenSEAL context (holds public + private keys) ────────────────────────────
-# Built once at import time and reused for every request — keygen is the slow
-# part of HE (hundreds of ms) and there is no security reason to regenerate it.
-# In a real deployment the private key would be loaded from a secrets store.
 
 def build_he_context() -> ts.Context:
     """Creates a CKKS context with a fresh keypair."""
@@ -55,7 +45,7 @@ def build_he_context() -> ts.Context:
         poly_modulus_degree=CKKS_POLY_MOD_DEGREE,
         coeff_mod_bit_sizes=CKKS_COEFF_MOD_BITS,
     )
-    ctx.generate_galois_keys()   # needed for vector rotation (used in inner products)
+    ctx.generate_galois_keys()
     ctx.global_scale = CKKS_SCALE
     return ctx
 
@@ -66,8 +56,6 @@ def get_he_context() -> ts.Context:
     if _HE_CONTEXT is None:
         _HE_CONTEXT = build_he_context()
     return _HE_CONTEXT
-
-# ── Core HE computation functions ────────────────────────────────────────────
 
 def load_device_vectors(device_name: str) -> dict:
     """
@@ -93,7 +81,6 @@ def load_device_vectors(device_name: str) -> dict:
         "n":        len(records),
     }
 
-
 def he_sum_vector(ctx: ts.Context, plaintext_vector: list) -> float:
     """
     Encrypts a vector, sums all elements using HE, decrypts and returns the result.
@@ -108,10 +95,9 @@ def he_sum_vector(ctx: ts.Context, plaintext_vector: list) -> float:
       3. Decrypt → get approximate sum (error < 1e-4 for typical energy values)
     """
     enc_vec = ts.ckks_vector(ctx, plaintext_vector)
-    enc_sum = enc_vec.sum()                  # HE addition, no decryption
-    result  = enc_sum.decrypt()[0]           # decrypt only the scalar result
+    enc_sum = enc_vec.sum()
+    result  = enc_sum.decrypt()[0]
     return result
-
 
 def he_mean_vector(ctx: ts.Context, plaintext_vector: list) -> float:
     """
@@ -123,10 +109,9 @@ def he_mean_vector(ctx: ts.Context, plaintext_vector: list) -> float:
     n       = len(plaintext_vector)
     enc_vec = ts.ckks_vector(ctx, plaintext_vector)
     enc_sum = enc_vec.sum()
-    enc_avg = enc_sum * (1.0 / n)            # scalar multiply — no extra noise level
+    enc_avg = enc_sum * (1.0 / n)
     result  = enc_avg.decrypt()[0]
     return result
-
 
 def he_weighted_cost_share(
     ctx: ts.Context,
@@ -154,13 +139,10 @@ def he_weighted_cost_share(
     enc_device_sum = enc_device.sum()
     enc_all_sum    = enc_all.sum()
 
-    grand_total    = enc_all_sum.decrypt()[0]          # decrypt denominator only
+    grand_total    = enc_all_sum.decrypt()[0]
     enc_share      = enc_device_sum * (100.0 / max(grand_total, 1e-9))
     share          = enc_share.decrypt()[0]
     return share
-
-
-# ── Main HE analytics function ────────────────────────────────────────────────
 
 def run_he_analytics() -> dict:
     """
@@ -175,7 +157,6 @@ def run_he_analytics() -> dict:
     devices      = sorted(data_col.distinct("device_name"))
     device_results = []
 
-    # Collect all costs for share-of-total computation
     all_costs_flat = []
     device_vectors = {}
 
@@ -200,7 +181,6 @@ def run_he_analytics() -> dict:
 
         t0 = time.perf_counter()
 
-        # ── Encrypted computations ────────────────────────────────────────────
         he_total_energy = he_sum_vector(ctx, vecs["energy"])
         he_total_cost   = he_sum_vector(ctx, vecs["cost"])
         he_avg_power    = he_mean_vector(ctx, vecs["power"])
@@ -210,14 +190,12 @@ def run_he_analytics() -> dict:
         elapsed_ms = (time.perf_counter() - t0) * 1000
         total_he_time_ms += elapsed_ms
 
-        # ── Plaintext ground truth (for verification) ─────────────────────────
         pt_total_energy = sum(vecs["energy"])
         pt_total_cost   = sum(vecs["cost"])
         pt_avg_power    = sum(vecs["power"])  / n
         pt_avg_active   = sum(vecs["active"]) / n
         pt_cost_share   = pt_total_cost / max(sum(all_costs_flat), 1e-9) * 100
 
-        # ── Approximation error (should be < 0.01% for CKKS at this scale) ───
         def pct_error(he_val, pt_val):
             if abs(pt_val) < 1e-9:
                 return 0.0
@@ -228,7 +206,6 @@ def run_he_analytics() -> dict:
             "records_used":   n,
             "he_time_ms":     round(elapsed_ms, 2),
 
-            # Encrypted results (post-decryption)
             "he_results": {
                 "total_energy_kWh": round(he_total_energy, 4),
                 "total_cost_EGP":   round(he_total_cost,   2),
@@ -237,7 +214,6 @@ def run_he_analytics() -> dict:
                 "cost_share_pct":   round(he_cost_share,    2),
             },
 
-            # Plaintext reference (to prove HE result is correct)
             "plaintext_reference": {
                 "total_energy_kWh": round(pt_total_energy, 4),
                 "total_cost_EGP":   round(pt_total_cost,   2),
@@ -246,7 +222,6 @@ def run_he_analytics() -> dict:
                 "cost_share_pct":   round(pt_cost_share,    2),
             },
 
-            # Approximation errors — proves CKKS accuracy
             "approximation_errors": {
                 "total_energy_pct": round(pct_error(he_total_energy, pt_total_energy), 6),
                 "total_cost_pct":   round(pct_error(he_total_cost,   pt_total_cost),   6),
@@ -254,7 +229,6 @@ def run_he_analytics() -> dict:
                 "avg_active_pct":   round(pct_error(he_avg_active,   pt_avg_active),    6),
             },
 
-            # Correctness verdict
             "all_within_tolerance": all([
                 pct_error(he_total_energy, pt_total_energy) < 0.01,
                 pct_error(he_total_cost,   pt_total_cost)   < 0.01,
@@ -284,11 +258,7 @@ def run_he_analytics() -> dict:
         "per_device": device_results,
     }
 
-
-# ── Flask Blueprint (mount onto your existing api.py) ────────────────────────
-
 he_bp = Blueprint("he", __name__)
-
 
 @he_bp.route("/api/he/summary", methods=["GET"])
 def he_summary():
@@ -301,7 +271,6 @@ def he_summary():
         return jsonify({"status": "ok", "data": result})
     except Exception as ex:
         return jsonify({"status": "error", "message": str(ex)}), 500
-
 
 @he_bp.route("/api/he/verify", methods=["GET"])
 def he_verify():
@@ -355,9 +324,6 @@ def he_verify():
     except Exception as ex:
         return jsonify({"status": "error", "message": str(ex)}), 500
 
-
-# ── Standalone runner (python he_layer.py) ────────────────────────────────────
-
 if __name__ == "__main__":
     print("\n🔐 Homomorphic Encryption Analytics Demo")
     print("=" * 60)
@@ -408,4 +374,3 @@ if __name__ == "__main__":
     print("  app.register_blueprint(he_bp)")
     print("  # Then visit: http://127.0.0.1:5000/api/he/summary")
     print("              http://127.0.0.1:5000/api/he/verify")
-    

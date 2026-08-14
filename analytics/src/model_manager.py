@@ -34,8 +34,6 @@ from classifier import compute_baseline
 
 log = logging.getLogger("analytics.model_manager")
 
-
-# ── Feature engineering (single source of truth — infer/evaluate import this) ───
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     """Pure arithmetic derivation. NaN-free, identical at train and inference."""
     df = df.copy()
@@ -43,8 +41,6 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     df["power_x_runtime"] = df["avg_power_W"] * df["runtime_ratio"]
     return df
 
-
-# ── Progress / readiness ────────────────────────────────────────────────────────
 def compute_progress(device_df: pd.DataFrame) -> dict:
     """How much usable data a device has collected so far."""
     n = len(device_df)
@@ -68,7 +64,6 @@ def compute_progress(device_df: pd.DataFrame) -> dict:
         "last_interval":   str(times.max().isoformat()) if len(times) else None,
     }
 
-
 def is_ready(progress: dict) -> tuple:
     """Returns (ready: bool, reasons: list[str]) — all conditions must pass."""
     reasons = []
@@ -80,18 +75,14 @@ def is_ready(progress: dict) -> tuple:
         reasons.append(f"too idle ({progress['active_fraction']*100:.1f}% active)")
     return (len(reasons) == 0, reasons)
 
-
 def progress_pct(progress: dict) -> float:
     """0–100% toward readiness — min of the two main gates, for the UI."""
     by_records = progress["n_records"] / READY_MIN_RECORDS if READY_MIN_RECORDS else 1
     by_span    = progress["span_days"] / READY_MIN_SPAN_DAYS if READY_MIN_SPAN_DAYS else 1
     return round(min(1.0, by_records, by_span) * 100, 1)
 
-
-# ── State access ────────────────────────────────────────────────────────────────
 def get_state(device_name: str) -> dict | None:
     return device_models_col.find_one({"device_name": device_name})
-
 
 def _state_public(doc: dict) -> dict:
     """Strip the heavy model blobs for API/log responses."""
@@ -111,7 +102,6 @@ def _state_public(doc: dict) -> dict:
         "updated_at":          doc.get("updated_at"),
     }
 
-
 def update_learning_state(device_name: str, progress: dict, reasons: list):
     device_models_col.update_one(
         {"device_name": device_name},
@@ -129,8 +119,6 @@ def update_learning_state(device_name: str, progress: dict, reasons: list):
         upsert=True,
     )
 
-
-# ── Training ─────────────────────────────────────────────────────────────────────
 def train_device(device_name: str, device_df: pd.DataFrame) -> dict:
     """
     Fit an Isolation Forest + scaler on a device's full history (unsupervised),
@@ -151,7 +139,6 @@ def train_device(device_name: str, device_df: pd.DataFrame) -> dict:
     )
     model.fit(X_scaled)
 
-    # Per-device normal baseline — used by the rule layer to *label* anomalies.
     baseline = compute_baseline(df)
 
     now = datetime.now(timezone.utc).isoformat()
@@ -183,7 +170,6 @@ def train_device(device_name: str, device_df: pd.DataFrame) -> dict:
              f"({progress['span_days']}d span) → READY")
     return {"device_name": device_name, "status": "ready", **progress}
 
-
 def load_device_model(device_name: str):
     """Returns (model, scaler, feature_order) or (None, None, None) if not ready."""
     doc = device_models_col.find_one({"device_name": device_name})
@@ -192,7 +178,6 @@ def load_device_model(device_name: str):
     model  = deserialize_model(doc["model_blob"])
     scaler = deserialize_model(doc["scaler_blob"])
     return model, scaler, doc.get("feature_order", FEATURES)
-
 
 def should_retrain(state: dict, progress: dict) -> bool:
     """Refresh a ready model when enough new data has arrived since last train."""
@@ -209,14 +194,12 @@ def should_retrain(state: dict, progress: dict) -> bool:
     grew = progress["n_records"] >= (state.get("trained_on_records", 0) + READY_MIN_RECORDS // 2)
     return age_days >= RETRAIN_INTERVAL_DAYS and grew
 
-
 def set_checkpoint(device_name: str, last_interval: str):
     device_models_col.update_one(
         {"device_name": device_name},
         {"$set": {"last_scored_interval": last_interval,
                   "updated_at": datetime.now(timezone.utc).isoformat()}},
     )
-
 
 def all_device_status() -> list:
     return [_state_public(d) for d in device_models_col.find({})]

@@ -4,12 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import styles from './page.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { API_URL } from '../lib/api';
 
 const SEV_LABEL = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
 
-// ── Lightweight SVG donut ───────────────────────────────────────────────────────
 function Donut({ segments, size = 168, thickness = 24 }) {
   const r = (size - thickness) / 2;
   const c = 2 * Math.PI * r;
@@ -18,7 +16,7 @@ function Donut({ segments, size = 168, thickness = 24 }) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef2f7" strokeWidth={thickness} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={thickness} />
         {segments.map((s, i) => {
           const len = (s.value / total) * c;
           const el = (
@@ -37,8 +35,7 @@ function Donut({ segments, size = 168, thickness = 24 }) {
   );
 }
 
-// ── Lightweight SVG area/line chart ──────────────────────────────────────────────
-function AreaChart({ values, height = 200, color = '#6366f1' }) {
+function AreaChart({ values, height = 200, color = '#818cf8' }) {
   const W = 640, H = height, pad = 10;
   if (!values.length) return null;
   const max = Math.max(...values, 1);
@@ -51,25 +48,24 @@ function AreaChart({ values, height = 200, color = '#6366f1' }) {
   ]);
   const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
   const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${H - pad} L${pts[0][0].toFixed(1)},${H - pad} Z`;
+  const gid = `areaFill-${color.replace('#', '')}`;
   return (
     <svg className={styles.areaSvg} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
       <defs>
-        <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={area} fill="url(#areaFill)" />
+      <path d={area} fill={`url(#${gid})`} />
       <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" />
     </svg>
   );
 }
 
-// ── Aggregate the per-device forecast into a single daily trend ──────────────────
 function aggregateForecast(d) {
-  // Endpoint returns per_device for "all", or a single forecast object otherwise.
   const devices = d.per_device || (d.points ? [d] : []);
-  const byTime = new Map();          // interval_start → summed kWh across devices
+  const byTime = new Map();
   const methods = new Set();
   devices.forEach((dev) => {
     methods.add(dev.method);
@@ -77,7 +73,7 @@ function aggregateForecast(d) {
       byTime.set(p.interval_start, (byTime.get(p.interval_start) || 0) + p.predicted_kWh);
     });
   });
-  const dayMap = new Map();          // YYYY-MM-DD → summed kWh
+  const dayMap = new Map();
   [...byTime.keys()].sort().forEach((t) => {
     const day = t.slice(0, 10);
     dayMap.set(day, (dayMap.get(day) || 0) + byTime.get(t));
@@ -140,7 +136,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className={styles.page}>
-      <Navbar activePage="analytics" />
+      <Navbar activePage="analytics" variant="dark" />
 
       <div className={styles.content}>
         <div className={styles.pageHeader}>
@@ -161,7 +157,6 @@ export default function AnalyticsPage() {
           <div className={styles.loading}><div className={styles.spinner} /><div>Loading analytics…</div></div>
         ) : !data ? null : (
           <>
-            {/* ── Model readiness ── */}
             {data.device_status?.length > 0 && (
               <div className={styles.readinessBar}>
                 <span className={styles.readinessLabel}>Anomaly models</span>
@@ -179,7 +174,6 @@ export default function AnalyticsPage() {
               </div>
             )}
 
-            {/* ── KPI cards ── */}
             <div className={styles.kpiGrid}>
               {data.kpi_cards?.map((k) => (
                 <div key={k.id} className={styles.kpiCard}>
@@ -194,7 +188,6 @@ export default function AnalyticsPage() {
               ))}
             </div>
 
-            {/* ── Energy trend ── */}
             <div className={styles.card}>
               <div className={styles.cardHead}>
                 <h2 className={styles.cardTitle}>Energy Trend</h2>
@@ -216,7 +209,6 @@ export default function AnalyticsPage() {
               })()}
             </div>
 
-            {/* ── Energy forecast ── */}
             <div className={styles.card}>
               <div className={styles.cardHead}>
                 <h2 className={styles.cardTitle}>Energy Forecast</h2>
@@ -270,7 +262,6 @@ export default function AnalyticsPage() {
             </div>
 
             <div className={styles.twoCol}>
-              {/* ── Cost breakdown donut ── */}
               <div className={styles.card}>
                 <div className={styles.cardHead}>
                   <h2 className={styles.cardTitle}>Cost by Device</h2>
@@ -304,7 +295,6 @@ export default function AnalyticsPage() {
                 })()}
               </div>
 
-              {/* ── Peak hours ── */}
               <div className={styles.card}>
                 <div className={styles.cardHead}>
                   <h2 className={styles.cardTitle}>Peak Hours</h2>
@@ -341,7 +331,6 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            {/* ── Anomalies ── */}
             <div className={styles.card}>
               <div className={styles.cardHead}>
                 <h2 className={styles.cardTitle}>Anomalies</h2>

@@ -28,6 +28,7 @@ const updateSettings = async (req, res) => {
         RETURNING id, name, email, role, tariff_rate, created_at`,
       [name.trim(), req.user.id]
     );
+    if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
     res.json({ user: rows[0] });
   } catch (err) {
     console.error('Update settings error:', err.message);

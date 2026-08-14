@@ -1,15 +1,8 @@
 const pool = require('../config/db');
 const registry = require('../services/applianceRegistry');
 
-// Spaces are user-defined rooms/areas. The canonical list lives in the `spaces`
-// table; each appliance references a space by its `room` text. Renaming a space
-// rewrites every appliance's room; deleting one moves its appliances to
-// Unassigned (room = NULL) rather than deleting the devices.
-
 const clean = (s) => (s || '').trim();
 
-// List spaces, first reconciling any appliance room that isn't yet a managed
-// space (covers data created before spaces existed, or via direct edits).
 const listSpaces = async (req, res) => {
   try {
     await pool.query(
@@ -86,7 +79,7 @@ const renameSpace = async (req, res) => {
     registry.invalidate();
     res.json({ space: { id, name } });
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Rename space error:', err.message);
     res.status(500).json({ message: 'Internal server error' });
   } finally {
@@ -94,7 +87,6 @@ const renameSpace = async (req, res) => {
   }
 };
 
-// Removing a space keeps its appliances — they fall back to Unassigned.
 const deleteSpace = async (req, res) => {
   const { id } = req.params;
   const client = await pool.connect();
@@ -117,7 +109,7 @@ const deleteSpace = async (req, res) => {
     registry.invalidate();
     res.json({ message: 'Space removed' });
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Delete space error:', err.message);
     res.status(500).json({ message: 'Internal server error' });
   } finally {
@@ -125,8 +117,6 @@ const deleteSpace = async (req, res) => {
   }
 };
 
-// Shared helper: ensure a room name is a managed space (used when an appliance
-// is created/moved into a brand-new room from the appliance form).
 const ensureSpace = async (userId, room) => {
   const name = clean(room);
   if (!name) return;

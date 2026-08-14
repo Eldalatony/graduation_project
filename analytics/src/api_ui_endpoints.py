@@ -36,13 +36,6 @@ def ok(data):
 def err(msg, code=400):
     return jsonify({"status": "error", "message": msg}), code
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# /api/ui/dashboard
-# Single call that returns EVERYTHING the main dashboard page needs.
-# Eliminates multiple round-trips from the frontend.
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @ui_bp.route("/api/ui/dashboard", methods=["GET"])
 def ui_dashboard():
     """
@@ -58,7 +51,6 @@ def ui_dashboard():
       // data.recent_alerts  → last 5 alerts for notification widget
     """
 
-    # ── KPI cards ─────────────────────────────────────────────────────────────
     grand = next(data_col.aggregate([
         {"$group": {
             "_id": None,
@@ -115,7 +107,6 @@ def ui_dashboard():
         },
     ]
 
-    # ── Cost donut chart ──────────────────────────────────────────────────────
     device_costs = list(data_col.aggregate([
         {"$group": {
             "_id":            "$device_name",
@@ -136,7 +127,6 @@ def ui_dashboard():
             "borderWidth":     2,
             "borderColor":     "#ffffff",
         }],
-        # Extra metadata per slice (for tooltips)
         "meta": [
             {
                 "device":           d["_id"],
@@ -149,7 +139,6 @@ def ui_dashboard():
         ],
     }
 
-    # ── Daily energy trend (last 30 days) ─────────────────────────────────────
     daily_trend_raw = list(data_col.aggregate([
         {"$group": {
             "_id":    {"$dateToString": {"format": "%Y-%m-%d", "date": {"$dateFromString": {"dateString": "$interval_start"}}}},
@@ -184,7 +173,6 @@ def ui_dashboard():
         ],
     }
 
-    # ── Peak hours bar chart (all 24 hours) ───────────────────────────────────
     hour_raw = list(data_col.aggregate([
         {"$group": {
             "_id":    {"$hour": {"$dateFromString": {"dateString": "$interval_start"}}},
@@ -202,7 +190,6 @@ def ui_dashboard():
         "datasets": [{
             "label":           "Energy (kWh)",
             "data":            peak_values,
-            # Colour peaks darker — helps frontend without extra logic
             "backgroundColor": [
                 "#6366f1" if v >= peak_max * 0.8
                 else "#a5b4fc" if v >= peak_max * 0.5
@@ -215,7 +202,6 @@ def ui_dashboard():
         "peak_hour_label": f"{peak_values.index(peak_max):02d}:00",
     }
 
-    # ── Anomaly summary for alert panel ───────────────────────────────────────
     severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     for a in alerts_col.find({}, {"anomaly_score": 1}):
         severity_counts[score_to_severity(a["anomaly_score"])] += 1
@@ -233,7 +219,6 @@ def ui_dashboard():
         ],
     }
 
-    # ── Recent alerts (last 5 for notification widget) ────────────────────────
     recent_raw = list(alerts_col.find(
         {}, {"_id": 0, "device_name": 1, "interval_start": 1, "avg_power_W": 1,
              "anomaly_score": 1, "anomaly_type": 1, "ground_truth_anomaly": 1}
@@ -252,7 +237,6 @@ def ui_dashboard():
         for a in recent_raw
     ]
 
-    # ── Adaptive-model readiness (learning vs ready) ──────────────────────────
     device_status = all_device_status()
     learning = [d for d in device_status if d["status"] != "ready"]
 
@@ -268,13 +252,6 @@ def ui_dashboard():
         "models_learning": len(learning),
         "models_ready":    len(device_status) - len(learning),
     })
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# /api/ui/charts/energy-trend
-# Line chart data with daily / weekly / monthly granularity.
-# Each device gets its own dataset line.
-# ═══════════════════════════════════════════════════════════════════════════════
 
 @ui_bp.route("/api/ui/charts/energy-trend", methods=["GET"])
 def ui_energy_trend():
@@ -320,7 +297,6 @@ def ui_energy_trend():
         {"$sort": {"_id.period": 1}},
     ]
 
-    # Simpler flat pipeline that works for all granularities
     if granularity == "daily":
         pipeline = [
             {"$group": {
@@ -361,7 +337,6 @@ def ui_energy_trend():
 
     raw = list(data_col.aggregate(pipeline))
 
-    # Build label list and per-device data maps
     devices = sorted(data_col.distinct("device_name"))
     label_set = []
     seen = set()
@@ -410,12 +385,6 @@ def ui_energy_trend():
             "title":   f"Energy Consumption — {granularity.title()} View",
         },
     })
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# /api/ui/charts/cost-breakdown
-# Horizontal bar chart — cost and energy per device with share percentages.
-# ═══════════════════════════════════════════════════════════════════════════════
 
 @ui_bp.route("/api/ui/charts/cost-breakdown", methods=["GET"])
 def ui_cost_breakdown():
@@ -471,7 +440,6 @@ def ui_cost_breakdown():
             "y_label":    "Appliance",
             "y1_label":   "Energy (kWh)",
         },
-        # Table-friendly flat list for a data table alongside the chart
         "table_data": [
             {
                 "rank":           i + 1,
@@ -485,12 +453,6 @@ def ui_cost_breakdown():
             for i in range(len(raw))
         ],
     })
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# /api/ui/anomalies/feed
-# Alert panel data — paginated, with severity badges and full context.
-# ═══════════════════════════════════════════════════════════════════════════════
 
 @ui_bp.route("/api/ui/anomalies/feed", methods=["GET"])
 def ui_anomaly_feed():
@@ -581,12 +543,6 @@ def ui_anomaly_feed():
         },
     })
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# /api/ui/anomalies/heatmap
-# Device × day heatmap — shows which devices had alerts on which days.
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @ui_bp.route("/api/ui/anomalies/heatmap", methods=["GET"])
 def ui_anomaly_heatmap():
     """
@@ -615,7 +571,6 @@ def ui_anomaly_heatmap():
     devices     = sorted(data_col.distinct("device_name"))
     date_set    = sorted({r["_id"]["date"] for r in raw})
 
-    # Build lookup: (device, date) → count
     lookup = {}
     for r in raw:
         lookup[(r["_id"]["device"], r["_id"]["date"])] = {
@@ -624,13 +579,11 @@ def ui_anomaly_heatmap():
             "severity": score_to_severity(r["worst_score"]),
         }
 
-    # Dense matrix (devices × dates)
     matrix = [
         [lookup.get((dev, date), {}).get("count", 0) for date in date_set]
         for dev in devices
     ]
 
-    # ApexCharts heatmap series format
     apex_series = [
         {
             "name": dev,

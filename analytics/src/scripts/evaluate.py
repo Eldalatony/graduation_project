@@ -17,7 +17,6 @@ import sys
 import pandas as pd
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 
-# Make the sibling modules in src/ importable when run from src/scripts/.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared import data_col as collection, alerts_col
@@ -44,8 +43,6 @@ print(f"True anomalies:  {df['is_true_anomaly'].sum()} "
 
 df = engineer_features(df)
 
-# ── Score using saved models ──────────────────────────────────────────────────
-
 all_results = []
 
 for device in sorted(df["device_name"].unique()):
@@ -68,8 +65,6 @@ y_true  = df_all["is_true_anomaly"]
 y_pred  = df_all["model_predicted"]
 y_score = -df_all["anomaly_score"]
 
-# ── Overall metrics ───────────────────────────────────────────────────────────
-
 print("=" * 65)
 print("📊 OVERALL EVALUATION")
 print("=" * 65)
@@ -88,8 +83,6 @@ try:
     print(f"ROC-AUC Score: {auc:.4f}  (1.0=perfect, 0.5=random, aim >0.85)\n")
 except Exception:
     pass
-
-# ── Per-device breakdown ──────────────────────────────────────────────────────
 
 print("=" * 65)
 print("📋 PER-DEVICE BREAKDOWN")
@@ -111,8 +104,6 @@ for device in sorted(df_all["device_name"].unique()):
     print(f"  {device:<25} {n_true:>5} {n_det:>5} {tp_d:>4} {fp_d:>4} {fn_d:>4}  "
           f"{prec:>10.2f}  {rec:>8.2f}")
 
-# ── Missed anomalies ──────────────────────────────────────────────────────────
-
 print("\n" + "=" * 65)
 print("🔍 MISSED ANOMALIES (false negatives)")
 print("=" * 65)
@@ -131,8 +122,6 @@ else:
               f"{row['avg_power_W']:>7.1f} "
               f"{row['active_minutes']:>8} "
               f"{row['anomaly_score']:>9.5f}")
-
-# ── Detection rate by anomaly type (pandas deprecation fix) ───────────────────
 
 print("\n" + "=" * 65)
 print("📊 ANOMALY TYPE DETECTION RATE")
@@ -161,8 +150,6 @@ for _, row in type_summary.iterrows():
           f"{int(row['caught']):>7} "
           f"{int(row['missed']):>7} "
           f"{row['recall']:>7.0%}  {bar}")
-
-# ── Alerts collection summary ─────────────────────────────────────────────────
 
 alert_count = alerts_col.count_documents({})
 if alert_count > 0:

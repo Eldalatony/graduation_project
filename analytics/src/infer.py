@@ -27,7 +27,6 @@ from forecaster import train_forecaster
 
 log = logging.getLogger("analytics.infer")
 
-
 def _safe_train_forecaster(device_name: str, device_df: pd.DataFrame):
     """Forecasting is a secondary feature — never let it break the critical
     anomaly-detection path. Train it alongside the detector, but swallow errors."""
@@ -36,7 +35,6 @@ def _safe_train_forecaster(device_name: str, device_df: pd.DataFrame):
     except Exception as ex:
         log.warning(f"forecaster training failed for '{device_name}': {ex}")
 
-
 def _score_device(device_name: str, device_df: pd.DataFrame, last_scored: str,
                   baseline: dict | None = None) -> int:
     """Score records newer than last_scored; upsert alerts. Returns alert count."""
@@ -44,11 +42,9 @@ def _score_device(device_name: str, device_df: pd.DataFrame, last_scored: str,
     if model is None:
         return 0
 
-    # Baseline of this device's normal behaviour, used to *label* anomalies.
     if baseline is None:
         baseline = compute_baseline(device_df)
 
-    # Only score intervals we haven't scored yet (None → score full history once).
     if last_scored:
         new_df = device_df[device_df["interval_start"] > last_scored].copy()
     else:
@@ -69,7 +65,6 @@ def _score_device(device_name: str, device_df: pd.DataFrame, last_scored: str,
             float(row["avg_power_W"]), float(row["max_power_W"]),
             int(row["active_minutes"]), float(row["runtime_ratio"]), baseline,
         )
-        # Upsert keyed by (device, interval) so re-scoring never duplicates alerts.
         alerts_col.update_one(
             {"device_name": device_name, "interval_start": row["interval_start"]},
             {"$set": {
@@ -99,10 +94,8 @@ def _score_device(device_name: str, device_df: pd.DataFrame, last_scored: str,
             upsert=True,
         )
 
-    # Advance the checkpoint to the newest interval we just saw.
     set_checkpoint(device_name, str(new_df["interval_start"].max()))
     return len(detected)
-
 
 def run_inference() -> dict:
     """One adaptive tick across all devices. Returns a summary for logging."""
@@ -118,7 +111,6 @@ def run_inference() -> dict:
         state     = get_state(device)
         ready     = bool(state and state.get("status") == "ready")
 
-        # ── LEARNING: gate check ──────────────────────────────────────────────
         if not ready:
             ok, reasons = is_ready(progress)
             if ok:
@@ -131,7 +123,6 @@ def run_inference() -> dict:
                 summary["learning"].append({"device": device, "pct": progress_pct(progress)})
                 continue
 
-        # ── READY: optional refresh, then score new data ──────────────────────
         if should_retrain(state, progress):
             train_device(device, device_df)
             _safe_train_forecaster(device, device_df)
@@ -145,7 +136,6 @@ def run_inference() -> dict:
     log.info(f"tick: {len(summary['ready'])} ready, {len(summary['learning'])} learning, "
              f"{len(summary['trained'])} newly trained, {summary['alerts_raised']} alerts")
     return summary
-
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")

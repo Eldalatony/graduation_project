@@ -18,6 +18,8 @@ env/
 # Never commit .env files! Only .env.example should be tracked.
 .env
 *.pem
+# Firmware credentials. Only secrets.example.h should be tracked.
+firmware/**/secrets.h
 
 # === OS Files ===
 .DS_Store

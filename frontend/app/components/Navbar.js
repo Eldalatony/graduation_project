@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './Navbar.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { API_URL } from '../lib/api';
 
 const TYPE_CONFIG = {
   HIGH_USAGE: { label: 'High Usage', color: '#f59e0b' },
@@ -30,12 +29,14 @@ const timeAgo = (ts) => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
-export default function Navbar({ activePage }) {
+export default function Navbar({ activePage, variant = 'light' }) {
   const router = useRouter();
   const [alerts, setAlerts]         = useState([]);
   const [userName, setUserName]     = useState('');
   const [open, setOpen]             = useState(false);
+  const [menuOpen, setMenuOpen]     = useState(false);
   const dropdownRef                 = useRef(null);
+  const menuRef                     = useRef(null);
 
   const token   = () => (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
   const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` });
@@ -48,7 +49,7 @@ export default function Navbar({ activePage }) {
       if (!res.ok) return;
       const data = await res.json();
       setAlerts(data.alerts || []);
-    } catch { /* silent */ }
+    } catch {}
   };
 
   const fetchUser = async () => {
@@ -58,7 +59,7 @@ export default function Navbar({ activePage }) {
       if (!res.ok) return;
       const data = await res.json();
       setUserName(data.user?.name || '');
-    } catch { /* silent */ }
+    } catch {}
   };
 
   useEffect(() => {
@@ -68,23 +69,27 @@ export default function Navbar({ activePage }) {
     return () => clearInterval(iv);
   }, []);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setOpen(false);
+      }
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const goTo = (path) => { setMenuOpen(false); router.push(path); };
+
   const markRead = async (id) => {
     try {
       const res = await fetch(`${API_URL}/api/alerts/${id}/read`, { method: 'PUT', headers: headers() });
       if (!res.ok) return;
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_read: true } : a));
-    } catch { /* silent */ }
+    } catch {}
   };
 
   const markAllRead = async () => {
@@ -92,7 +97,7 @@ export default function Navbar({ activePage }) {
       const res = await fetch(`${API_URL}/api/alerts/read-all`, { method: 'PUT', headers: headers() });
       if (!res.ok) return;
       setAlerts(prev => prev.map(a => ({ ...a, is_read: true })));
-    } catch { /* silent */ }
+    } catch {}
   };
 
   const logout = () => {
@@ -103,14 +108,12 @@ export default function Navbar({ activePage }) {
   const unreadCount = alerts.filter(a => !a.is_read).length;
 
   return (
-    <nav className={styles.nav}>
-      {/* User */}
+    <nav className={`${styles.nav} ${variant === 'dark' ? styles.dark : ''}`}>
       <div className={styles.brand} onClick={() => router.push('/settings')} title="Account settings">
         <span className={styles.avatar}>{(userName || '?').charAt(0).toUpperCase()}</span>
         <span className={styles.name}>{userName || 'Account'}</span>
       </div>
 
-      {/* Links */}
       <div className={styles.links}>
         {NAV_LINKS.map(l => (
           <button
@@ -123,7 +126,6 @@ export default function Navbar({ activePage }) {
         ))}
       </div>
 
-      {/* Right: bell + logout */}
       <div className={styles.right}>
         <div className={styles.bellWrap} ref={dropdownRef}>
           <button
@@ -188,6 +190,33 @@ export default function Navbar({ activePage }) {
         </div>
 
         <button className={styles.logoutBtn} onClick={logout}>Logout</button>
+
+        <div className={styles.menuWrap} ref={menuRef}>
+          <button
+            className={`${styles.hamburger} ${menuOpen ? styles.hamburgerOpen : ''}`}
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label="Menu"
+            aria-expanded={menuOpen}
+          >
+            <span /><span /><span />
+          </button>
+
+          {menuOpen && (
+            <div className={styles.mobileMenu}>
+              {NAV_LINKS.map(l => (
+                <button
+                  key={l.key}
+                  className={`${styles.mobileLink} ${activePage === l.key ? styles.mobileLinkActive : ''}`}
+                  onClick={() => goTo(l.path)}
+                >
+                  {l.label}
+                </button>
+              ))}
+              <div className={styles.mobileDivider} />
+              <button className={styles.mobileLogout} onClick={logout}>Logout</button>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

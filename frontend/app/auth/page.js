@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { API_URL } from '../lib/api';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -59,7 +58,6 @@ export default function AuthPage() {
     }
   };
 
-  // Step 1: request a reset code by email.
   const handleForgot = async (e) => {
     e.preventDefault();
     setError(null);
@@ -82,7 +80,6 @@ export default function AuthPage() {
     }
   };
 
-  // Step 2: submit the code + new password.
   const handleReset = async (e) => {
     e.preventDefault();
     setError(null);

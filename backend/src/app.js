@@ -35,11 +35,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check
 app.get('/', (_req, res) => res.send('SHEMMS Backend is running'));
 app.get('/health', (_req, res) => res.json({ status: 'ok', uptime_s: process.uptime() }));
 
-// REST routes
 app.use('/api/auth', authRoutes);
 app.use('/api/appliances', applianceRoutes);
 app.use('/api/spaces', spaceRoutes);
@@ -48,8 +46,6 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/live', liveRoutes);
 
-// Analytics service is fronted by the backend so the frontend has one
-// base URL, one auth boundary, and the analytics container stays internal.
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ui',        analyticsRoutes);
 app.use('/api/he',        analyticsRoutes);
@@ -85,7 +81,6 @@ const bootstrap = async () => {
     console.error('❌ PostgreSQL connection error:', err.message);
   }
 
-  // Wire event listeners BEFORE starting MQTT subscription so we can't drop early messages.
   socketService.init(server);
   liveReadings.init();
   alertEngine.init();
@@ -93,7 +88,6 @@ const bootstrap = async () => {
   await scheduler.init();
   etl.init();
 
-  // Now connect to MQTT and start ingesting.
   require('./services/mqttService');
 
   server.listen(PORT, () => {

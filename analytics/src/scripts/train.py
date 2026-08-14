@@ -17,7 +17,6 @@ import os
 import sys
 import pandas as pd
 
-# Make the sibling modules in src/ importable when run from src/scripts/.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared import data_col, READY_MIN_RECORDS, READY_MIN_SPAN_DAYS

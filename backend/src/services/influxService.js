@@ -12,7 +12,6 @@ const influxDB = new InfluxDB({ url, token });
 const writeApi = influxDB.getWriteApi(org, bucket, 'ns');
 const queryApi = influxDB.getQueryApi(org);
 
-// Writes a single encrypted reading for an appliance.
 const writeEncryptedReading = ({
   userId,
   applianceId,
@@ -44,7 +43,6 @@ const flushWrites = () => writeApi.flush().catch((err) => {
   console.error('❌ InfluxDB flush error:', err.message);
 });
 
-// Read last N live readings (decrypted) for an appliance.
 const getLiveReadings = async (applianceId, minutes = 5) => {
   const query = `
     from(bucket: "${bucket}")
@@ -80,7 +78,6 @@ const getLiveReadings = async (applianceId, minutes = 5) => {
   return rows;
 };
 
-// Aggregate readings per appliance over a window (used by ETL job).
 const getAggregatesSince = async (sinceIso) => {
   const query = `
     from(bucket: "${bucket}")
